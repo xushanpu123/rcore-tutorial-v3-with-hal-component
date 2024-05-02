@@ -8,7 +8,7 @@ edition = "2021"
 
 [dependencies]
 log = "0.4"
-sbi-rt = { version = "0.0.2", features = ["legacy"] }
-
+buddy_system_allocator = "0.6"
+polyhal = { git = "https://github.com/chyyuu/polyhal.git", features = ["kcontext"]}
 [profile.release]
 debug = true
