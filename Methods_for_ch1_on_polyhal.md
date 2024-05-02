@@ -20,7 +20,7 @@ fn main(hartid: usize) {
 
 ```rust
 /// kernel interrupt
-#[polyhal::arch_interrupt]
+#[polyhal::arch_interrupt]   
 fn kernel_interrupt(_ctx: &mut TrapFrame, _trap_type: TrapType) {
 
 }
