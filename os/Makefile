@@ -1,5 +1,32 @@
+
 # Building
 TARGET := riscv64gc-unknown-none-elf
+ARCH := riscv64
+ifeq ($(ARCH), x86_64)
+  TARGET := x86_64-unknown-none
+  QEMU_EXEC += qemu-system-x86_64 \
+				-machine q35 \
+				-kernel $(KERNEL_ELF) \
+				-cpu IvyBridge-v2
+  BUS := pci
+else ifeq ($(ARCH), riscv64)
+  TARGET := riscv64gc-unknown-none-elf
+  QEMU_EXEC += qemu-system-$(ARCH) \
+				-machine virt \
+				-kernel $(KERNEL_BIN)
+else ifeq ($(ARCH), aarch64)
+  TARGET := aarch64-unknown-none-softfloat
+  QEMU_EXEC += qemu-system-$(ARCH) \
+				-cpu cortex-a72 \
+				-machine virt \
+				-kernel $(KERNEL_BIN)
+else ifeq ($(ARCH), loongarch64)
+  TARGET := loongarch64-unknown-none
+  QEMU_EXEC += qemu-system-$(ARCH) -kernel $(KERNEL_ELF)
+  BUS := pci
+else
+  $(error "ARCH" must be one of "x86_64", "riscv64", "aarch64" or "loongarch64")
+endif
 MODE := release
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
@@ -12,8 +39,6 @@ endif
 
 # BOARD
 BOARD := qemu
-SBI ?= rustsbi
-BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
 
 # KERNEL ENTRY
 KERNEL_ENTRY_PA := 0x80200000
@@ -25,11 +50,14 @@ OBJCOPY := rust-objcopy --binary-architecture=riscv64
 # Disassembly
 DISASM ?= -x
 
+
+
 build: env $(KERNEL_BIN)
 
 env:
 	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
 	cargo install cargo-binutils
+
 	rustup component add rust-src
 	rustup component add llvm-tools-preview
 
@@ -38,7 +66,7 @@ $(KERNEL_BIN): kernel
 
 kernel:
 	@echo Platform: $(BOARD)
-	@cargo build $(MODE_ARG)
+	@cargo build -Z build-std=alloc,core --target $(TARGET) $(MODE_ARG)
 
 clean:
 	@cargo clean
@@ -53,13 +81,11 @@ disasm-vim: kernel
 
 run: run-inner
 
-QEMU_ARGS := -machine virt \
-			 -nographic \
-			 -bios $(BOOTLOADER) \
+QEMU_EXEC += -nographic \
 			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
 
 run-inner: build
-	@qemu-system-riscv64 $(QEMU_ARGS)
+	$(QEMU_EXEC)
 
 debug: build
 	@tmux new-session -d \
