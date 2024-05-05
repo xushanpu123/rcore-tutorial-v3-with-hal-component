@@ -66,7 +66,7 @@ $(KERNEL_BIN): kernel
 kernel:
 	@$(MAKE) -C ../user build
 	@echo Platform: $(BOARD)
-	@cargo build -Z build-std --release --target $(TARGET)
+	@cargo build -Z build-std=alloc,core --release --target $(TARGET)
 
 
 clean:

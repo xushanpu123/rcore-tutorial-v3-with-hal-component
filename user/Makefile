@@ -9,7 +9,7 @@ OBJDUMP := rust-objdump --arch-name=$(ARCH)
 OBJCOPY := rust-objcopy --binary-architecture=$(ARCH)
 
 elf:
-	@cargo build --release --target $(TARGET)
+	@cargo build -Z build-std=alloc,core --release --target $(TARGET)
 
 binary: elf
 	@$(foreach elf, $(ELFS), $(OBJCOPY) $(elf) --strip-all -O binary $(patsubst $(TARGET_DIR)/%, $(TARGET_DIR)/%.bin, $(elf));)
