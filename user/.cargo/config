@@ -3,5 +3,24 @@ target = "riscv64gc-unknown-none-elf"
 
 [target.riscv64gc-unknown-none-elf]
 rustflags = [
-    "-Clink-args=-Tsrc/linker.ld", "-Cforce-frame-pointers=yes"
+    "-Clink-args=-Tsrc/linker-riscv64.ld",
+	"-Cforce-frame-pointers=yes"
+]
+
+[target.x86_64-unknown-none]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-x86_64.ld",
+    "-Cforce-frame-pointers=yes"
+]
+
+[target.aarch64-unknown-none-softfloat]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-aarch64.ld",
+    "-Cforce-frame-pointers=yes"
+]
+
+[target.loongarch64-unknown-none]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-loongarch64.ld",
+    "-Cforce-frame-pointers=yes"
 ]

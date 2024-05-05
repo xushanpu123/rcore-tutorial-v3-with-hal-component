@@ -5,7 +5,7 @@
 extern crate user_lib;
 
 #[no_mangle]
-fn main() -> i32 {
-    println!("Hello, world!");
+pub fn main() -> i32 {
+    println!("Hello world from user mode program!");
     0
 }
