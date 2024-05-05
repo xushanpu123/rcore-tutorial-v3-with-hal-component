@@ -8,6 +8,7 @@ use log::info;
 use polyhal::{TrapFrame,TrapFrameArgs,run_user_task,shutdown,VIRT_ADDR_START};
 use polyhal::pagetable::{MappingFlags, MappingSize, PageTable, PageTableWrapper};
 use polyhal::addr::*;
+use polyhal::mem::Barrier;
 pub use crate::frame_allocater::{frame_alloc, frame_alloc_persist, frame_dealloc, FrameTracker};
 const USER_STACK_SIZE: usize = 4096 * 2;
 const KERNEL_STACK_SIZE: usize = 4096 * 2;
@@ -110,7 +111,7 @@ impl AppManager {
         );
         info!("app src: {:#x} size: {:#x}", self.app_start[app_id], self.app_start[app_id + 1] - self.app_start[app_id]);
         let app_dst = core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, app_src.len());
-        app_dst.copy_from_slice(app_src);
+		app_dst.copy_from_slice(app_src);
         // hexdump(&app_src);
         // hexdump(&app_dst);
         // panic!("123");
@@ -121,6 +122,7 @@ impl AppManager {
         // the code of the next app into the instruction memory.
         // See also: riscv non-priv spec chapter 3, 'Zifencei' extension.
         // asm!("fence.i");
+		// Barrier::complete_sync()
     }
 
     pub fn get_current_app(&self) -> usize {

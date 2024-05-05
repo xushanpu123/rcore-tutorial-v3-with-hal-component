@@ -7,7 +7,7 @@ fn main() {
     insert_app_data().unwrap();
 }
 
-static TARGET_PATH: &str = "../user/target/riscv64gc-unknown-none-elf/release/";
+static TARGET_PATH: &str = "../user/target/x86_64-unknown-none/release/";
 
 fn insert_app_data() -> Result<()> {
     let mut f = File::create("src/link_app.S").unwrap();
@@ -46,7 +46,6 @@ _num_app:
     .section .data
     .global app_{0}_start
     .global app_{0}_end
-    .p2align 12
 app_{0}_start:
     .incbin "{2}{1}.bin"
 app_{0}_end:"#,
