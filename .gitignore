@@ -12,6 +12,7 @@ os/src/linker.ld
 os/last-*
 os/Cargo.lock
 os/.gdb_history
+os/qemu.log
 user/build
 user/target/*
 user/.idea/*

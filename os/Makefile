@@ -27,6 +27,7 @@ else
   $(error "ARCH" must be one of "x86_64", "riscv64", "aarch64" or "loongarch64")
 endif
 MODE := release
+export ARCH TARGET MODE
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
@@ -63,7 +64,7 @@ $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 kernel:
-	@cd ../user && make build
+	@$(MAKE) -C ../user build
 	@echo Platform: $(BOARD)
 	@cargo build -Z build-std --release --target $(TARGET)
 
