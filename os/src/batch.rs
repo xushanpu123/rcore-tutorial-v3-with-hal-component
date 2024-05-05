@@ -120,7 +120,7 @@ impl AppManager {
         // Therefore, fence.i must be executed after we have loaded
         // the code of the next app into the instruction memory.
         // See also: riscv non-priv spec chapter 3, 'Zifencei' extension.
-        asm!("fence.i");
+        // asm!("fence.i");
     }
 
     pub fn get_current_app(&self) -> usize {

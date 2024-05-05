@@ -23,9 +23,5 @@ git = "https://github.com/Byte-OS/polyhal.git"
 features = ["inline-asm"]
 git = "https://github.com/rcore-os/riscv"
 
-[dependencies.sbi-rt]
-features = ["legacy"]
-version = "0.0.2"
-
 [profile.release]
 debug = true
