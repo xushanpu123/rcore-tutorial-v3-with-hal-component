@@ -39,9 +39,7 @@ $(KERNEL_BIN): kernel
 kernel:
 	@cd ../user && make build
 	@echo Platform: $(BOARD)
-	@cp src/linker-$(BOARD).ld src/linker.ld
 	@cargo build $(MODE_ARG)
-	@rm src/linker.ld
 
 
 clean:
@@ -60,7 +58,9 @@ run: run-inner
 QEMU_ARGS := -machine virt \
 			 -nographic \
 			 -bios $(BOOTLOADER) \
-			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA)
+			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
+			 -D qemu.log -d in_asm,int,pcall,cpu_reset,guest_errors
+
 
 run-inner: build
 	@qemu-system-riscv64 $(QEMU_ARGS)

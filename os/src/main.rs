@@ -14,77 +14,107 @@
 //! We then call [`batch::run_next_app()`] and for the first time go to
 //! userspace.
 
-#![deny(missing_docs)]
-#![deny(warnings)]
+//#![deny(missing_docs)]
+//#![deny(warnings)]
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
+#![feature(alloc_error_handler)]
 
+extern crate polyhal;
+extern crate alloc;
+#[macro_use]
+extern crate bitflags;
 use core::arch::global_asm;
+use buddy_system_allocator::LockedHeap;
+use log::info;
+use polyhal::pagetable::PageTableWrapper;
 
-use log::*;
+#[global_allocator]            
+static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
+//use log::*;
 #[macro_use]
 mod console;
 pub mod batch;
+pub mod frame_allocater;
+pub mod heap_allocator;
 mod lang_items;
 mod logging;
-mod sbi;
 mod sync;
 pub mod syscall;
-pub mod trap;
-
-global_asm!(include_str!("entry.asm"));
+pub mod config;
+use crate::syscall::syscall;
+use crate::batch::*;
+pub use crate::frame_allocater::*;
+use polyhal::{get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
+use polyhal::addr::PhysPage;
+use polyhal::TrapType::*;
+pub use heap_allocator::init_heap;
 global_asm!(include_str!("link_app.S"));
 
-/// clear BSS segment
-fn clear_bss() {
-    extern "C" {
-        fn sbss();
-        fn ebss();
+pub struct PageAllocImpl;
+
+impl PageAlloc for PageAllocImpl {
+    #[inline]
+    fn alloc(&self) -> PhysPage {
+        frame_alloc_persist().expect("can't find memory page")
     }
-    unsafe {
-        core::slice::from_raw_parts_mut(sbss as usize as *mut u8, ebss as usize - sbss as usize)
-            .fill(0);
+
+    #[inline]
+    fn dealloc(&self, ppn: PhysPage) {
+        frame_dealloc(ppn)
+    }
+}
+
+/// kernel interrupt
+#[polyhal::arch_interrupt]
+fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
+    // println!("trap_type @ {:x?} {:#x?}", trap_type, ctx);
+    match trap_type {
+        UserEnvCall => {
+            // jump to next instruction anyway
+            ctx.syscall_ok();
+            let args = ctx.args();
+            // get system call return value
+            // info!("syscall: {}", ctx[TrapFrameArgs::SYSCALL]);
+
+            let result = syscall(ctx[TrapFrameArgs::SYSCALL], [args[0], args[1], args[2]]);
+            // cx is changed during sys_exec, so we have to call it again
+            ctx[TrapFrameArgs::RET] = result as usize;
+        }
+        StorePageFault(_paddr) | LoadPageFault(_paddr) | InstructionPageFault(_paddr) => {
+            println!("[kernel] PageFault in application, kernel killed it. paddr={:x}",_paddr);
+            run_next_app();
+        }
+        IllegalInstruction(_) => {
+            println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            run_next_app();
+        }
+        Time => {
+            
+        }
+        _ => {
+            panic!("unsuspended trap type: {:?}", trap_type);
+        }
     }
 }
 
 /// the rust entry-point of os
-#[no_mangle]
-pub fn rust_main() -> ! {
-    extern "C" {
-        fn stext(); // begin addr of text segment
-        fn etext(); // end addr of text segment
-        fn srodata(); // start addr of Read-Only data segment
-        fn erodata(); // end addr of Read-Only data ssegment
-        fn sdata(); // start addr of data segment
-        fn edata(); // end addr of data segment
-        fn sbss(); // start addr of BSS segment
-        fn ebss(); // end addr of BSS segment
-        fn boot_stack_lower_bound(); // stack lower bound
-        fn boot_stack_top(); // stack top
+#[polyhal::arch_entry]
+fn main(hartid: usize) {
+    if hartid != 0 {
+        return;
     }
-    clear_bss();
-    logging::init();
     println!("[kernel] Hello, world!");
-    trace!(
-        "[kernel] .text [{:#x}, {:#x})",
-        stext as usize,
-        etext as usize
-    );
-    debug!(
-        "[kernel] .rodata [{:#x}, {:#x})",
-        srodata as usize, erodata as usize
-    );
-    info!(
-        "[kernel] .data [{:#x}, {:#x})",
-        sdata as usize, edata as usize
-    );
-    warn!(
-        "[kernel] boot_stack top=bottom={:#x}, lower_bound={:#x}",
-        boot_stack_top as usize, boot_stack_lower_bound as usize
-    );
-    error!("[kernel] .bss [{:#x}, {:#x})", sbss as usize, ebss as usize);
-    trap::init();
+    init_heap();
+    logging::init(Some("trace"));
+    polyhal::init(&PageAllocImpl);
+    get_mem_areas().into_iter().for_each(|(start, size)| {
+        info!("frame alloocator add frame {:#x} - {:#x}", start, start + size);
+        init_frame_allocator(start, start + size);
+    });
+    let new_page_table = PageTableWrapper::alloc();
+    new_page_table.change();
     batch::init();
     batch::run_next_app();
 }

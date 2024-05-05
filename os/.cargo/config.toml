@@ -1,0 +1,34 @@
+[build]
+target = "riscv64gc-unknown-none-elf"
+# target = 'aarch64-unknown-none-softfloat'
+# target = 'x86_64-unknown-none'
+# target = 'loongarch64-unknown-none'
+
+[target.riscv64gc-unknown-none-elf]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-riscv64.ld",
+    "-Cforce-frame-pointers=yes",
+    '--cfg=board="qemu"',
+]
+
+[target.x86_64-unknown-none]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-x86_64.ld",
+    "-Cforce-frame-pointers=yes",
+    '-Clink-arg=-no-pie',
+    '--cfg=board="qemu"',
+]
+
+[target.aarch64-unknown-none-softfloat]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-aarch64.ld",
+    "-Cforce-frame-pointers=yes",
+    '--cfg=board="qemu"',
+]
+
+[target.loongarch64-unknown-none]
+rustflags = [
+    "-Clink-arg=-Tsrc/linker-loongarch64.ld",
+    "-Cforce-frame-pointers=yes",
+    '--cfg=board="qemu"',
+]

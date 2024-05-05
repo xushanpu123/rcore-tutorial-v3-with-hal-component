@@ -1,47 +1,74 @@
-/*！
+use core::fmt::{self, Write};
 
-本模块利用 log crate 为你提供了日志功能，使用方式见 main.rs.
+use polyhal::debug::DebugConsole;
+use log::{self, info, Level, LevelFilter, Log, Metadata, Record};
 
-*/
+pub struct Logger;
 
-use log::{self, Level, LevelFilter, Log, Metadata, Record};
-
-struct SimpleLogger;
-
-impl Log for SimpleLogger {
+impl Log for Logger {
     fn enabled(&self, _metadata: &Metadata) -> bool {
         true
     }
+
     fn log(&self, record: &Record) {
         if !self.enabled(record.metadata()) {
             return;
         }
-        let color = match record.level() {
-            Level::Error => 31, // Red
-            Level::Warn => 93,  // BrightYellow
-            Level::Info => 34,  // Blue
-            Level::Debug => 32, // Green
-            Level::Trace => 90, // BrightBlack
+
+        let file = record.file();
+        let line = record.line();
+
+        let color_code = match record.level() {
+            Level::Error => 31u8, // Red
+            Level::Warn => 93,    // BrightYellow
+            Level::Info => 34,    // Blue
+            Level::Debug => 32,   // Green
+            Level::Trace => 90,   // BrightBlack
         };
-        println!(
-            "\u{1B}[{}m[{:>5}] {}\u{1B}[0m",
-            color,
+        write!(
+            Logger,
+            "\u{1B}[{}m\
+            [{}] {}:{} {}\
+            \u{1B}[0m\n",
+            color_code,
             record.level(),
-            record.args(),
-        );
+            file.unwrap(),
+            line.unwrap(),
+            record.args()
+        )
+        .expect("can't write color string in logging module.");
     }
+
     fn flush(&self) {}
 }
 
-pub fn init() {
-    static LOGGER: SimpleLogger = SimpleLogger;
-    log::set_logger(&LOGGER).unwrap();
-    log::set_max_level(match option_env!("LOG") {
-        Some("ERROR") => LevelFilter::Error,
-        Some("WARN") => LevelFilter::Warn,
-        Some("INFO") => LevelFilter::Info,
-        Some("DEBUG") => LevelFilter::Debug,
-        Some("TRACE") => LevelFilter::Trace,
+impl Write for Logger {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        let mut buffer = [0u8; 4];
+        for c in s.chars() {
+            puts(c.encode_utf8(&mut buffer).as_bytes())
+        }
+        Ok(())
+    }
+}
+
+pub fn init(level: Option<&str>) {
+    log::set_logger(&Logger).unwrap();
+    log::set_max_level(match level {
+        Some("error") => LevelFilter::Error,
+        Some("warn") => LevelFilter::Warn,
+        Some("info") => LevelFilter::Info,
+        Some("debug") => LevelFilter::Debug,
+        Some("trace") => LevelFilter::Trace,
         _ => LevelFilter::Off,
     });
+    info!("logging module initialized");
+}
+
+#[inline]
+pub fn puts(buffer: &[u8]) {
+    // use the main uart if it exists.
+    for i in buffer {
+        DebugConsole::putchar(*i);
+    }
 }

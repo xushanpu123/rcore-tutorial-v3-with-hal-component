@@ -46,6 +46,7 @@ _num_app:
     .section .data
     .global app_{0}_start
     .global app_{0}_end
+    .p2align 12
 app_{0}_start:
     .incbin "{2}{1}.bin"
 app_{0}_end:"#,
