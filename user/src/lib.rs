@@ -102,7 +102,14 @@ pub fn getpid() -> isize {
 pub fn fork() -> isize {
     sys_fork()
 }
-pub fn exec(path: &str, args: &[*const u8]) -> isize {
+pub fn exec(path: &str) -> isize {
+    let mut arr: [*const u8; 4] = [
+        core::ptr::null::<u8>(),
+        core::ptr::null::<u8>(),
+        core::ptr::null::<u8>(),
+        core::ptr::null::<u8>(),
+    ];
+    let args: &[*const u8] = &arr[..];
     sys_exec(path, args)
 }
 pub fn wait(exit_code: &mut i32) -> isize {
