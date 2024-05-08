@@ -1,11 +1,10 @@
-//!Stdin & Stdout
+use polyhal::debug::DebugConsole;
+
 use super::File;
-use crate::mm::UserBuffer;
-use crate::sbi::console_getchar;
 use crate::task::suspend_current_and_run_next;
-///Standard input
+
 pub struct Stdin;
-///Standard output
+
 pub struct Stdout;
 
 impl File for Stdin {
@@ -15,26 +14,21 @@ impl File for Stdin {
     fn writable(&self) -> bool {
         false
     }
-    fn read(&self, mut user_buf: UserBuffer) -> usize {
+    fn read(&self, user_buf: &mut [u8]) -> usize {
         assert_eq!(user_buf.len(), 1);
         // busy loop
-        let mut c: usize;
+        let c: u8;
         loop {
-            c = console_getchar();
-            if c == 0 {
-                suspend_current_and_run_next();
-                continue;
-            } else {
+            if let Some(ch) = DebugConsole::getchar() {
+                c = ch;
                 break;
             }
+            suspend_current_and_run_next();
         }
-        let ch = c as u8;
-        unsafe {
-            user_buf.buffers[0].as_mut_ptr().write_volatile(ch);
-        }
+        user_buf[0] = c as u8;
         1
     }
-    fn write(&self, _user_buf: UserBuffer) -> usize {
+    fn write(&self, _user_buf: &mut [u8]) -> usize {
         panic!("Cannot write to stdin!");
     }
 }
@@ -46,13 +40,14 @@ impl File for Stdout {
     fn writable(&self) -> bool {
         true
     }
-    fn read(&self, _user_buf: UserBuffer) -> usize {
+    fn read(&self, _user_buf: &mut [u8]) -> usize {
         panic!("Cannot read from stdout!");
     }
-    fn write(&self, user_buf: UserBuffer) -> usize {
-        for buffer in user_buf.buffers.iter() {
-            print!("{}", core::str::from_utf8(*buffer).unwrap());
-        }
+    fn write(&self, user_buf: &mut [u8]) -> usize {
+        // for buffer in user_buf.buffers.iter() {
+        //     print!("{}", core::str::from_utf8(*buffer).unwrap());
+        // }
+        print!("{}", core::str::from_utf8(user_buf).unwrap());
         user_buf.len()
     }
 }
