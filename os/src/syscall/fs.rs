@@ -6,7 +6,6 @@ use log::info;
 use polyhal::pagetable::PageTable;
 
 pub fn sys_write(fd: usize, buf: *mut u8, len: usize) -> isize {
-    info!("user write: fd={}, buf={:p}, len={}", fd, buf, len);
     let process = current_process();
     let inner = process.inner_exclusive_access();
     if fd >= inner.fd_table.len() {

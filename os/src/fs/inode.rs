@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use bitflags::*;
 use easy_fs::{EasyFileSystem, Inode};
 use lazy_static::*;
-use log::error;
+use log::{error, info};
 
 pub struct OSInode {
     readable: bool,

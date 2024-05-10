@@ -49,8 +49,6 @@ lazy_static! {
 
 #[polyhal::arch_interrupt]
 fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
-    log::info!("trap_type @ {:x?}", trap_type);
-    // info!("current_task id: {}", current_task().is_some());
     match trap_type {
         Breakpoint => return,
         UserEnvCall => {
@@ -81,9 +79,9 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             // suspend_current_and_run_next();
         }
         SupervisorExternal => {
-            log::debug!("entry SupervisorExternal");
             let mut plic: PLIC = unsafe { PLIC::new(VIRT_PLIC) };
             let intr_src_id = plic.claim(0, IntrTargetPriority::Supervisor);
+            log::trace!("entry SupervisorExternal, intr_src_id: {}", intr_src_id);
             match intr_src_id {
                 5 => KEYBOARD_DEVICE.handle_irq(),
                 6 => MOUSE_DEVICE.handle_irq(),
@@ -103,7 +101,6 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
         // panic!("end");
         exit_current_and_run_next(errno);
     }
-    info!("end of trap");
 }
 
 #[polyhal::arch_entry]
@@ -124,7 +121,7 @@ pub fn rust_main(_hartid: usize) -> ! {
     // let _mouse = MOUSE_DEVICE.clone();
     // println!("KERN: init trap");
     // timer::set_next_trigger();
-    // board::device_init();
+    board::device_init();
     fs::list_apps();
     task::add_initproc();
     *DEV_NON_BLOCKING_ACCESS.exclusive_access() = true;
@@ -139,7 +136,6 @@ impl PageAlloc for PageAllocImpl {
     #[inline]
     fn alloc(&self) -> PhysPage {
         let res = mm::frame_alloc_persist().expect("can't find memory page");
-        info!("alloc page: {:#x?}", res.as_num() << 12);
         res
     }
 

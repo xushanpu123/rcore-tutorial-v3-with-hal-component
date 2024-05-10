@@ -1,13 +1,17 @@
 use crate::sync::{Condvar, Mutex, MutexBlocking, MutexSpin, Semaphore};
-use crate::task::{block_current_and_run_next, current_process, current_task};
+use crate::task::{block_current_and_run_next, current_process, current_task, suspend_current_and_run_next};
 use crate::timer::{add_timer, get_time_ms};
 use alloc::sync::Arc;
+use polyhal::time::Time;
 
 pub fn sys_sleep(ms: usize) -> isize {
-    let expire_ms = get_time_ms() + ms;
-    let task = current_task().unwrap();
-    add_timer(expire_ms, task);
-    block_current_and_run_next();
+    let target_ms = Time::now().to_msec() + ms;
+    loop {
+        if Time::now().to_msec() >= target_ms {
+            break;
+        }
+        suspend_current_and_run_next();
+    }
     0
 }
 

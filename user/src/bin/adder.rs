@@ -52,6 +52,7 @@ pub fn main(argc: usize, argv: &[&str]) -> i32 {
     for tid in v.into_iter() {
         waittid(tid);
     }
+    println!("per thread: {}, {} * {}", unsafe { A }, unsafe { PER_THREAD }, thread_count);
     println!("time cost is {}ms", get_time() - start);
     assert_eq!(unsafe { A }, unsafe { PER_THREAD } * thread_count);
     0

@@ -58,7 +58,6 @@ impl MemorySet {
     /// also returns user_sp_base and entry point.
     pub fn from_elf(elf_data: &[u8]) -> (Self, usize, usize) {
         let mut memory_set = Self::new_bare();
-        info!("current pagetable: {:?}", memory_set.token());
 
         // map program headers of elf, with U flag
         let elf = xmas_elf::ElfFile::new(elf_data).unwrap();
@@ -83,7 +82,6 @@ impl MemorySet {
                 if ph_flags.is_execute() {
                     map_perm |= MapPermission::X;
                 }
-                info!("start_va: {:?}, end_va: {:?}", start_va, end_va);
                 let map_area = MapArea::new(start_va, end_va, MapType::Framed, map_perm);
                 max_end_vpn = map_area.vpn_range.get_end();
                 memory_set.push(
@@ -169,7 +167,6 @@ impl MapArea {
             // self.map_one(page_table, vpn);
             let p_tracker = frame_alloc().expect("can't allocate frame");
             page_table.map_page(vpn, p_tracker.ppn, self.map_perm.into(), MappingSize::Page4KB);
-            info!("vpn: {:?}, ppn: {:?}", vpn, p_tracker.ppn);
             self.data_frames.insert(vpn, p_tracker);
         }
     }
