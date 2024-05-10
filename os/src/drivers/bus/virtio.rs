@@ -1,11 +1,14 @@
 use crate::mm::{
-    frame_alloc_more, frame_dealloc, kernel_token, FrameTracker, PageTable, PhysAddr, PhysPageNum,
-    StepByOne, VirtAddr,
-};
+    frame_alloc_more, frame_dealloc, FrameTracker};
 use crate::sync::UPIntrFreeCell;
+use crate::task::current_process;
 use alloc::vec::Vec;
 use lazy_static::*;
+use polyhal::PAGE_SIZE;
 use virtio_drivers::Hal;
+use polyhal::addr::PhysAddr;
+use polyhal::addr::PhysPage;
+use polyhal::addr::VirtAddr;
 
 lazy_static! {
     static ref QUEUE_FRAMES: UPIntrFreeCell<Vec<FrameTracker>> =
@@ -22,15 +25,15 @@ impl Hal for VirtioHal {
             .exclusive_access()
             .append(&mut trakcers.unwrap());
         let pa: PhysAddr = ppn_base.into();
-        pa.0
+        pa.addr()
     }
 
     fn dma_dealloc(pa: usize, pages: usize) -> i32 {
-        let pa = PhysAddr::from(pa);
-        let mut ppn_base: PhysPageNum = pa.into();
+        let pa = PhysAddr::new(pa);
+        let mut ppn_base: PhysPage = pa.into();
         for _ in 0..pages {
             frame_dealloc(ppn_base);
-            ppn_base.step();
+            ppn_base = ppn_base + 1
         }
         0
     }
@@ -40,9 +43,6 @@ impl Hal for VirtioHal {
     }
 
     fn virt_to_phys(vaddr: usize) -> usize {
-        PageTable::from_token(kernel_token())
-            .translate_va(VirtAddr::from(vaddr))
-            .unwrap()
-            .0
+        vaddr - 0xffff_ffc0_0000_0000
     }
 }

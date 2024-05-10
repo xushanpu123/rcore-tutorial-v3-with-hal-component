@@ -1,18 +1,18 @@
 use super::id::TaskUserRes;
-use super::{kstack_alloc, KernelStack, ProcessControlBlock, TaskContext};
-use crate::trap::TrapContext;
-use crate::{
-    mm::PhysPageNum,
-    sync::{UPIntrFreeCell, UPIntrRefMut},
-};
+use super::task_entry;
+use super::{KernelStack, ProcessControlBlock};
+use polyhal::pagetable::PageTable;
+use crate::sync::{UPIntrFreeCell, UPIntrRefMut};
 use alloc::sync::{Arc, Weak};
+use polyhal::{KContext, KContextArgs, TrapFrame};
 
 pub struct TaskControlBlock {
     // immutable
     pub process: Weak<ProcessControlBlock>,
     pub kstack: KernelStack,
+    pub kcontext: KContext,
     // mutable
-    pub inner: UPIntrFreeCell<TaskControlBlockInner>,
+    inner: UPIntrFreeCell<TaskControlBlockInner>,
 }
 
 impl TaskControlBlock {
@@ -20,24 +20,27 @@ impl TaskControlBlock {
         self.inner.exclusive_access()
     }
 
-    pub fn get_user_token(&self) -> usize {
-        let process = self.process.upgrade().unwrap();
-        let inner = process.inner_exclusive_access();
-        inner.memory_set.token()
+    pub fn page_table_token(&self) -> PageTable {
+        self.inner_exclusive_access().page_table
     }
 }
 
 pub struct TaskControlBlockInner {
     pub res: Option<TaskUserRes>,
-    pub trap_cx_ppn: PhysPageNum,
-    pub task_cx: TaskContext,
+    pub trap_cx: TrapFrame,
+    pub task_cx: KContext,
     pub task_status: TaskStatus,
+    pub page_table: PageTable,
     pub exit_code: Option<i32>,
 }
 
+
 impl TaskControlBlockInner {
-    pub fn get_trap_cx(&self) -> &'static mut TrapContext {
-        self.trap_cx_ppn.get_mut()
+    pub fn get_trap_cx(&self) -> &'static mut TrapFrame {
+        let paddr = &self.trap_cx as *const TrapFrame as usize as *mut TrapFrame;
+        // let paddr: PhysAddr = self.trap_cx.into();
+        // unsafe { paddr.get_mut_ptr::<TrapFrame>().as_mut().unwrap() }
+        unsafe { paddr.as_mut().unwrap() }
     }
 
     #[allow(unused)]
@@ -51,19 +54,27 @@ impl TaskControlBlock {
         process: Arc<ProcessControlBlock>,
         ustack_base: usize,
         alloc_user_res: bool,
+        page_table: PageTable
     ) -> Self {
         let res = TaskUserRes::new(Arc::clone(&process), ustack_base, alloc_user_res);
-        let trap_cx_ppn = res.trap_cx_ppn();
-        let kstack = kstack_alloc();
-        let kstack_top = kstack.get_top();
+        // let trap_cx = res.trap_cx_ppn();
+        // let kstack = kstack_alloc();
+        // let kstack_top = kstack.get_top();
+        let kstack = KernelStack::new();
+        let kstack_top = kstack.get_position().1;
+        let mut kcontext = KContext::blank();
+        kcontext[KContextArgs::KSP] = kstack_top;
+        kcontext[KContextArgs::KPC] = task_entry as usize;
         Self {
             process: Arc::downgrade(&process),
             kstack,
+            kcontext: KContext::blank(), 
             inner: unsafe {
                 UPIntrFreeCell::new(TaskControlBlockInner {
                     res: Some(res),
-                    trap_cx_ppn,
-                    task_cx: TaskContext::goto_trap_return(kstack_top),
+                    page_table,
+                    trap_cx: TrapFrame::new(),
+                    task_cx: kcontext,
                     task_status: TaskStatus::Ready,
                     exit_code: None,
                 })

@@ -1,13 +1,15 @@
 use crate::fs::{open_file, OpenFlags};
 use crate::mm::{translated_ref, translated_refmut, translated_str};
 use crate::task::{
-    current_process, current_task, current_user_token, exit_current_and_run_next, pid2process,
+    current_process, current_task, exit_current_and_run_next, pid2process,
     suspend_current_and_run_next, SignalFlags,
 };
-use crate::timer::get_time_ms;
+use polyhal::pagetable::PageTable;
+use polyhal::TrapFrameArgs;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use polyhal::time::Time;
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);
@@ -20,7 +22,7 @@ pub fn sys_yield() -> isize {
 }
 
 pub fn sys_get_time() -> isize {
-    get_time_ms() as isize
+    Time::now().to_msec() as isize
 }
 
 pub fn sys_getpid() -> isize {
@@ -37,12 +39,12 @@ pub fn sys_fork() -> isize {
     let trap_cx = task.inner_exclusive_access().get_trap_cx();
     // we do not have to move to next instruction since we have done it before
     // for child process, fork returns 0
-    trap_cx.x[10] = 0;
+    trap_cx[TrapFrameArgs::RET] = 0;
     new_pid as isize
 }
 
 pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
-    let token = current_user_token();
+    let token = PageTable::current();
     let path = translated_str(token, path);
     let mut args_vec: Vec<String> = Vec::new();
     loop {

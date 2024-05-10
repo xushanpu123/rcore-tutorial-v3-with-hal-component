@@ -131,11 +131,11 @@ impl File for PortFd {
         false
     }
 
-    fn read(&self, _buf: crate::mm::UserBuffer) -> usize {
+    fn read(&self, _buf: &mut [u8]) -> usize {
         0
     }
 
-    fn write(&self, _buf: crate::mm::UserBuffer) -> usize {
+    fn write(&self, _buf: &mut [u8]) -> usize {
         0
     }
 }

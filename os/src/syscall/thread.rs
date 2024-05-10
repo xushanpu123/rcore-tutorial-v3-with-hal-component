@@ -1,13 +1,11 @@
-use crate::{
-    mm::kernel_token,
-    task::{add_task, current_task, TaskControlBlock},
-    trap::{trap_handler, TrapContext},
-};
+use crate::task::{add_task, current_task, TaskControlBlock};
 use alloc::sync::Arc;
+use polyhal::TrapFrameArgs;
 
 pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
     let task = current_task().unwrap();
     let process = task.process.upgrade().unwrap();
+    let page_table = process.inner_exclusive_access().get_user_token();
     // create a new thread
     let new_task = Arc::new(TaskControlBlock::new(
         Arc::clone(&process),
@@ -17,6 +15,7 @@ pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
             .unwrap()
             .ustack_base,
         true,
+        page_table
     ));
     // add new task to scheduler
     add_task(Arc::clone(&new_task));
@@ -31,13 +30,15 @@ pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
     }
     tasks[new_task_tid] = Some(Arc::clone(&new_task));
     let new_task_trap_cx = new_task_inner.get_trap_cx();
-    *new_task_trap_cx = TrapContext::app_init_context(
-        entry,
-        new_task_res.ustack_top(),
-        kernel_token(),
-        new_task.kstack.get_top(),
-        trap_handler as usize,
-    );
+    // *new_task_trap_cx = TrapContext::app_init_context(
+    //     entry,
+    //     new_task_res.ustack_top(),
+    //     kernel_token(),
+    //     new_task.kstack.get_top(),
+    //     trap_handler as usize,
+    // );
+    new_task_trap_cx[TrapFrameArgs::SEPC] = entry;
+    new_task_trap_cx[TrapFrameArgs::SP] = new_task_res.ustack_top(); 
     (*new_task_trap_cx).x[10] = arg;
     new_task_tid as isize
 }

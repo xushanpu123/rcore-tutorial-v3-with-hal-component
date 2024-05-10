@@ -1,5 +1,4 @@
 use super::File;
-use crate::mm::UserBuffer;
 use crate::sync::UPIntrFreeCell;
 use alloc::sync::{Arc, Weak};
 
@@ -112,7 +111,7 @@ impl File for Pipe {
     fn writable(&self) -> bool {
         self.writable
     }
-    fn read(&self, buf: UserBuffer) -> usize {
+    fn read(&self, buf: &mut [u8]) -> usize {
         assert!(self.readable());
         let want_to_read = buf.len();
         let mut buf_iter = buf.into_iter();
@@ -143,7 +142,7 @@ impl File for Pipe {
             }
         }
     }
-    fn write(&self, buf: UserBuffer) -> usize {
+    fn write(&self, buf: &mut [u8]) -> usize {
         assert!(self.writable());
         let want_to_write = buf.len();
         let mut buf_iter = buf.into_iter();

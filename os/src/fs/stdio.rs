@@ -1,7 +1,6 @@
 use super::File;
 use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
-use crate::mm::UserBuffer;
 
 pub struct Stdin;
 pub struct Stdout;
@@ -13,16 +12,14 @@ impl File for Stdin {
     fn writable(&self) -> bool {
         false
     }
-    fn read(&self, mut user_buf: UserBuffer) -> usize {
-        assert_eq!(user_buf.len(), 1);
-        //println!("before UART.read() in Stdin::read()");
+    fn read(&self, mut user_buf: &mut [u8]) -> usize {
         let ch = UART.read();
         unsafe {
-            user_buf.buffers[0].as_mut_ptr().write_volatile(ch);
+            user_buf.as_mut_ptr().write_volatile(ch);
         }
         1
     }
-    fn write(&self, _user_buf: UserBuffer) -> usize {
+    fn write(&self, _user_buf: &mut [u8]) -> usize {
         panic!("Cannot write to stdin!");
     }
 }
@@ -34,13 +31,11 @@ impl File for Stdout {
     fn writable(&self) -> bool {
         true
     }
-    fn read(&self, _user_buf: UserBuffer) -> usize {
+    fn read(&self, _user_buf: &mut [u8]) -> usize {
         panic!("Cannot read from stdout!");
     }
-    fn write(&self, user_buf: UserBuffer) -> usize {
-        for buffer in user_buf.buffers.iter() {
-            print!("{}", core::str::from_utf8(*buffer).unwrap());
-        }
-        user_buf.len()
+    fn write(&self, user_buf: &mut [u8]) -> usize {
+        print!("{}", core::str::from_utf8(user_buf).unwrap());
+        1
     }
 }

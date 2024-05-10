@@ -1,10 +1,10 @@
 use crate::fs::{make_pipe, open_file, OpenFlags};
-use crate::mm::{translated_byte_buffer, translated_refmut, translated_str, UserBuffer};
-use crate::task::{current_process, current_user_token};
+use crate::mm::{translated_byte_buffer, translated_refmut, translated_str};
+use crate::task::current_process;
 use alloc::sync::Arc;
+use polyhal::pagetable::PageTable;
 
-pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
-    let token = current_user_token();
+pub fn sys_write(fd: usize, buf: *mut u8, len: usize) -> isize {
     let process = current_process();
     let inner = process.inner_exclusive_access();
     if fd >= inner.fd_table.len() {
@@ -17,14 +17,13 @@ pub fn sys_write(fd: usize, buf: *const u8, len: usize) -> isize {
         let file = file.clone();
         // release current task TCB manually to avoid multi-borrow
         drop(inner);
-        file.write(UserBuffer::new(translated_byte_buffer(token, buf, len))) as isize
+        file.write(translated_byte_buffer(PageTable::current(), buf, len)) as isize
     } else {
         -1
     }
 }
 
-pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
-    let token = current_user_token();
+pub fn sys_read(fd: usize, buf: *mut u8, len: usize) -> isize {
     let process = current_process();
     let inner = process.inner_exclusive_access();
     if fd >= inner.fd_table.len() {
@@ -37,16 +36,14 @@ pub fn sys_read(fd: usize, buf: *const u8, len: usize) -> isize {
         }
         // release current task TCB manually to avoid multi-borrow
         drop(inner);
-        file.read(UserBuffer::new(translated_byte_buffer(token, buf, len))) as isize
+        file.read(translated_byte_buffer(PageTable::current(), buf, len)) as isize
     } else {
         -1
     }
 }
-
 pub fn sys_open(path: *const u8, flags: u32) -> isize {
     let process = current_process();
-    let token = current_user_token();
-    let path = translated_str(token, path);
+    let path = translated_str(PageTable::current(), path);
     if let Some(inode) = open_file(path.as_str(), OpenFlags::from_bits(flags).unwrap()) {
         let mut inner = process.inner_exclusive_access();
         let fd = inner.alloc_fd();
@@ -72,15 +69,14 @@ pub fn sys_close(fd: usize) -> isize {
 
 pub fn sys_pipe(pipe: *mut usize) -> isize {
     let process = current_process();
-    let token = current_user_token();
     let mut inner = process.inner_exclusive_access();
     let (pipe_read, pipe_write) = make_pipe();
     let read_fd = inner.alloc_fd();
     inner.fd_table[read_fd] = Some(pipe_read);
     let write_fd = inner.alloc_fd();
     inner.fd_table[write_fd] = Some(pipe_write);
-    *translated_refmut(token, pipe) = read_fd;
-    *translated_refmut(token, unsafe { pipe.add(1) }) = write_fd;
+    *translated_refmut(PageTable::current(), pipe) = read_fd;
+    *translated_refmut(PageTable::current(), unsafe { pipe.add(1) }) = write_fd;
     0
 }
 

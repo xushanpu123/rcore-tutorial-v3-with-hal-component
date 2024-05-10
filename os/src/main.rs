@@ -3,7 +3,6 @@
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
-//use crate::drivers::{GPU_DEVICE, KEYBOARD_DEVICE, MOUSE_DEVICE, INPUT_CONDVAR};
 use crate::drivers::{GPU_DEVICE, KEYBOARD_DEVICE, MOUSE_DEVICE};
 extern crate alloc;
 
@@ -26,51 +25,131 @@ mod sync;
 mod syscall;
 mod task;
 mod timer;
-mod trap;
+mod logging;
 
 use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
 
-core::arch::global_asm!(include_str!("entry.asm"));
-
-fn clear_bss() {
-    extern "C" {
-        fn sbss();
-        fn ebss();
-    }
-    unsafe {
-        core::slice::from_raw_parts_mut(sbss as usize as *mut u8, ebss as usize - sbss as usize)
-            .fill(0);
-    }
-}
-
 use lazy_static::*;
 use sync::UPIntrFreeCell;
+use crate::{syscall::syscall, task::check_signals_of_current};
+use crate::task::exit_current_and_run_next;
+use polyhal::{debug, TrapType::*};
+use log::*;
+use polyhal::{addr::PhysPage, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType, get_cpu_num, get_fdt};
+use task::{current_add_signal, suspend_current_and_run_next, SignalFlags};
+
+use crate::drivers::block::BLOCK_DEVICE;
+use crate::drivers::plic::{IntrTargetPriority, PLIC};
+use board::VIRT_PLIC;
 
 lazy_static! {
     pub static ref DEV_NON_BLOCKING_ACCESS: UPIntrFreeCell<bool> =
         unsafe { UPIntrFreeCell::new(false) };
 }
 
-#[no_mangle]
-pub fn rust_main() -> ! {
-    clear_bss();
+#[polyhal::arch_interrupt]
+fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
+    log::trace!("trap_type @ {:x?} {:#x?}", trap_type, ctx);
+    // info!("current_task id: {}", current_task().is_some());
+    match trap_type {
+        Breakpoint => return,
+        UserEnvCall => {
+            // jump to next instruction anyway
+            ctx.syscall_ok();
+            let args = ctx.args();
+            // get system call return value
+            // info!("syscall: {}", ctx[TrapFrameArgs::SYSCALL]);
+
+            let result = syscall(ctx[TrapFrameArgs::SYSCALL], [args[0], args[1], args[2]]);
+            // cx is changed during sys_exec, so we have to call it again
+            ctx[TrapFrameArgs::RET] = result as usize;
+        }
+        StorePageFault(_paddr) | LoadPageFault(_paddr) | InstructionPageFault(_paddr) => {
+            /*
+            println!(
+                "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
+                scause.cause(),
+                stval,
+                current_trap_cx().sepc,
+            );
+            */
+            current_add_signal(SignalFlags::SIGSEGV);
+        }
+        IllegalInstruction(_) => {
+            current_add_signal(SignalFlags::SIGILL);
+        }
+        Time => {
+            suspend_current_and_run_next();
+        }
+        SupervisorExternal => {
+            log::debug!("entry SupervisorExternal");
+            let mut plic: PLIC = unsafe { PLIC::new(VIRT_PLIC) };
+            let intr_src_id = plic.claim(0, IntrTargetPriority::Supervisor);
+            match intr_src_id {
+                5 => KEYBOARD_DEVICE.handle_irq(),
+                6 => MOUSE_DEVICE.handle_irq(),
+                8 => BLOCK_DEVICE.handle_irq(),
+                10 => UART.handle_irq(),
+                _ => panic!("unsupported IRQ {}", intr_src_id),
+
+            }
+            plic.complete(0, IntrTargetPriority::Supervisor, intr_src_id);
+        }
+        _ => {
+            warn!("unsuspended trap type: {:?}", trap_type);
+        }
+    }
+    if let Some((errno, msg)) = check_signals_of_current() {
+        println!("[kernel] {}", msg);
+        // panic!("end");
+        exit_current_and_run_next(errno);
+    }
+}
+
+#[polyhal::arch_entry]
+pub fn rust_main(_hartid: usize) -> ! {
     mm::init();
+    logging::init(Some("debug"));
+    polyhal::init(&PageAllocImpl);
+    get_mem_areas().into_iter().for_each(|(start, size)|{
+        mm::init_frame_allocator(start, start+size);
+    });
+    // debug!("cpu num: {}", get_cpu_num());
+    // let fdt = get_fdt().unwrap();
+    // fdt.all_nodes().into_iter().for_each(|node| {
+    //     debug!("node: name{}", node.name);
+    // });
+    // while(true) {}
     UART.init();
-    println!("KERN: init gpu");
-    let _gpu = GPU_DEVICE.clone();
-    println!("KERN: init keyboard");
-    let _keyboard = KEYBOARD_DEVICE.clone();
-    println!("KERN: init mouse");
-    let _mouse = MOUSE_DEVICE.clone();
-    println!("KERN: init trap");
-    trap::init();
-    trap::enable_timer_interrupt();
-    timer::set_next_trigger();
-    board::device_init();
+    println!("KERN: init plic");
+    // println!("KERN: init gpu");
+    // let _gpu = GPU_DEVICE.clone();
+    // println!("KERN: init keyboard");
+    // let _keyboard = KEYBOARD_DEVICE.clone();
+    // println!("KERN: init mouse");
+    // let _mouse = MOUSE_DEVICE.clone();
+    // println!("KERN: init trap");
+    // timer::set_next_trigger();
+    // board::device_init();
     fs::list_apps();
     task::add_initproc();
     *DEV_NON_BLOCKING_ACCESS.exclusive_access() = true;
     task::run_tasks();
     panic!("Unreachable in rust_main!");
+}
+
+
+pub struct PageAllocImpl;
+
+impl PageAlloc for PageAllocImpl {
+    #[inline]
+    fn alloc(&self) -> PhysPage {
+        mm::frame_alloc_persist().expect("can't find memory page")
+    }
+
+    #[inline]
+    fn dealloc(&self, ppn: PhysPage) {
+        mm::frame_dealloc(ppn)
+    }
 }

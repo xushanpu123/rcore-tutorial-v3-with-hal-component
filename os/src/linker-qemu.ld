@@ -1,53 +1,69 @@
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
-BASE_ADDRESS = 0x80200000;
+
+BASE_ADDRESS = 0xffffffc080200000;
 
 SECTIONS
 {
+    /* Load the kernel at this address: "." means the current address */
     . = BASE_ADDRESS;
-    skernel = .;
+    start = .;
+    _skernel = .;
 
-    stext = .;
-    .text : {
+    .text ALIGN(4K): {
+        stext = .;
         *(.text.entry)
-        . = ALIGN(4K);
-        strampoline = .;
-        *(.text.trampoline);
-        . = ALIGN(4K);
         *(.text .text.*)
+        etext = .;
     }
 
-    . = ALIGN(4K);
-    etext = .;
-    srodata = .;
-    .rodata : {
+    .rodata ALIGN(4K): {
+        srodata = .;
         *(.rodata .rodata.*)
-        *(.srodata .srodata.*)
+        . = ALIGN(4K);
+        erodata = .;
     }
 
-    . = ALIGN(4K);
-    erodata = .;
-    sdata = .;
-    .data : {
+    .data ALIGN(4K): {
+        . = ALIGN(4K);
+        *(.data.prepage .data.prepage.*)
+        . = ALIGN(4K);
+        _sdata = .;
         *(.data .data.*)
         *(.sdata .sdata.*)
+        _edata = .;
     }
 
-    . = ALIGN(4K);
-    edata = .;
-    sbss_with_stack = .;
-    .bss : {
+    .sigtrx ALIGN(4K): {
+        *(.sigtrx .sigtrx.*)
+    }
+
+    _load_end = .;
+
+    .bss ALIGN(4K): {
         *(.bss.stack)
-        sbss = .;
+        _sbss = .;
         *(.bss .bss.*)
         *(.sbss .sbss.*)
+        _ebss = .;
     }
 
     . = ALIGN(4K);
-    ebss = .;
-    ekernel = .;
+    _percpu_start = .;
+    .percpu 0x0 : AT(_percpu_start) {
+        _percpu_load_start = .;
+        *(.percpu .percpu.*)
+        _percpu_load_end = .;
+        . = ALIGN(64);
+        _percpu_size_aligned = .;
 
+        . = _percpu_load_start + _percpu_size_aligned * 1;
+    }
+    . = _percpu_start + SIZEOF(.percpu);
+    _percpu_end = .;
+
+    PROVIDE(end = .);
     /DISCARD/ : {
-        *(.eh_frame)
+        *(.comment) *(.gnu*) *(.note*) *(.eh_frame*)
     }
 }

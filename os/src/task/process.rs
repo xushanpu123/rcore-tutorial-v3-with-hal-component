@@ -1,16 +1,18 @@
+use super::task_entry;
 use super::id::RecycleAllocator;
 use super::manager::insert_into_pid2process;
 use super::TaskControlBlock;
 use super::{add_task, SignalFlags};
 use super::{pid_alloc, PidHandle};
 use crate::fs::{File, Stdin, Stdout};
-use crate::mm::{translated_refmut, MemorySet, KERNEL_SPACE};
+use crate::mm::{translated_refmut, MemorySet};
 use crate::sync::{Condvar, Mutex, Semaphore, UPIntrFreeCell, UPIntrRefMut};
-use crate::trap::{trap_handler, TrapContext};
+use polyhal::{KContext, KContextArgs, TrapFrame, TrapFrameArgs};
 use alloc::string::String;
 use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
+use polyhal::pagetable::PageTable;
 
 pub struct ProcessControlBlock {
     // immutable
@@ -36,7 +38,7 @@ pub struct ProcessControlBlockInner {
 
 impl ProcessControlBlockInner {
     #[allow(unused)]
-    pub fn get_user_token(&self) -> usize {
+    pub fn get_user_token(&self) -> PageTable {
         self.memory_set.token()
     }
 
@@ -76,6 +78,7 @@ impl ProcessControlBlock {
         let (memory_set, ustack_base, entry_point) = MemorySet::from_elf(elf_data);
         // allocate a pid
         let pid_handle = pid_alloc();
+        let page_table = memory_set.token();
         let process = Arc::new(Self {
             pid: pid_handle,
             inner: unsafe {
@@ -107,20 +110,26 @@ impl ProcessControlBlock {
             Arc::clone(&process),
             ustack_base,
             true,
+            page_table
         ));
         // prepare trap_cx of main thread
-        let task_inner = task.inner_exclusive_access();
+        let mut task_inner = task.inner_exclusive_access();
         let trap_cx = task_inner.get_trap_cx();
         let ustack_top = task_inner.res.as_ref().unwrap().ustack_top();
-        let kstack_top = task.kstack.get_top();
+        // let kstack_top = task.kstack.get_top();
+        let kstack_top = task.kstack.get_position().1;
+        task_inner.task_cx[KContextArgs::KSP] = kstack_top;
+        task_inner.task_cx[KContextArgs::KPC] = task_entry as usize;
         drop(task_inner);
-        *trap_cx = TrapContext::app_init_context(
-            entry_point,
-            ustack_top,
-            KERNEL_SPACE.exclusive_access().token(),
-            kstack_top,
-            trap_handler as usize,
-        );
+        // *trap_cx = TrapContext::app_init_context(
+        //     entry_point,
+        //     ustack_top,
+        //     KERNEL_SPACE.exclusive_access().token(),
+        //     kstack_top,
+        //     trap_handler as usize,
+        // );
+        trap_cx[TrapFrameArgs::SEPC] = entry_point;
+        trap_cx[TrapFrameArgs::SP] = ustack_top;
         // add main thread to the process
         let mut process_inner = process.inner_exclusive_access();
         process_inner.tasks.push(Some(Arc::clone(&task)));
@@ -136,6 +145,7 @@ impl ProcessControlBlock {
         assert_eq!(self.inner_exclusive_access().thread_count(), 1);
         // memory_set with elf program headers/trampoline/trap context/user stack
         let (memory_set, ustack_base, entry_point) = MemorySet::from_elf(elf_data);
+        memory_set.activate();
         let new_token = memory_set.token();
         // substitute memory_set
         self.inner_exclusive_access().memory_set = memory_set;
@@ -145,7 +155,9 @@ impl ProcessControlBlock {
         let mut task_inner = task.inner_exclusive_access();
         task_inner.res.as_mut().unwrap().ustack_base = ustack_base;
         task_inner.res.as_mut().unwrap().alloc_user_res();
-        task_inner.trap_cx_ppn = task_inner.res.as_mut().unwrap().trap_cx_ppn();
+        // task_inner.trap_cx = task_inner.res.as_mut().unwrap().trap_cx_ppn().clone();
+        task_inner.trap_cx = TrapFrame::new();
+        task_inner.page_table = new_token;
         // push arguments on user stack
         let mut user_sp = task_inner.res.as_mut().unwrap().ustack_top();
         user_sp -= (args.len() + 1) * core::mem::size_of::<usize>();
@@ -172,15 +184,20 @@ impl ProcessControlBlock {
         // make the user_sp aligned to 8B for k210 platform
         user_sp -= user_sp % core::mem::size_of::<usize>();
         // initialize trap_cx
-        let mut trap_cx = TrapContext::app_init_context(
-            entry_point,
-            user_sp,
-            KERNEL_SPACE.exclusive_access().token(),
-            task.kstack.get_top(),
-            trap_handler as usize,
-        );
-        trap_cx.x[10] = args.len();
-        trap_cx.x[11] = argv_base;
+        // let mut trap_cx = TrapContext::app_init_context(
+        //     entry_point,
+        //     user_sp,
+        //     KERNEL_SPACE.exclusive_access().token(),
+        //     task.kstack.get_top(),
+        //     trap_handler as usize,
+        // );
+        let mut trap_cx = TrapFrame::new();
+        trap_cx[TrapFrameArgs::SEPC] = entry_point;
+        trap_cx[TrapFrameArgs::SP] = user_sp;
+        trap_cx[TrapFrameArgs::ARG0] = args.len();
+        trap_cx[TrapFrameArgs::ARG1] = argv_base;
+        // trap_cx.x[10] = args.len();
+        // trap_cx.x[11] = argv_base;
         *task_inner.get_trap_cx() = trap_cx;
     }
 
@@ -190,6 +207,7 @@ impl ProcessControlBlock {
         assert_eq!(parent.thread_count(), 1);
         // clone parent's memory_set completely including trampoline/ustacks/trap_cxs
         let memory_set = MemorySet::from_existed_user(&parent.memory_set);
+        let page_table = memory_set.token();
         // alloc a pid
         let pid = pid_alloc();
         // copy fd table
@@ -236,6 +254,7 @@ impl ProcessControlBlock {
             // here we do not allocate trap_cx or ustack again
             // but mention that we allocate a new kstack here
             false,
+            page_table
         ));
         // attach task to child process
         let mut child_inner = child.inner_exclusive_access();
@@ -244,7 +263,9 @@ impl ProcessControlBlock {
         // modify kstack_top in trap_cx of this thread
         let task_inner = task.inner_exclusive_access();
         let trap_cx = task_inner.get_trap_cx();
-        trap_cx.kernel_sp = task.kstack.get_top();
+        trap_cx.clone_from(&parent.get_task(0).inner_exclusive_access().trap_cx);
+        // trap_cx.kernel_sp = task.kstack.get_top();
+        // trap_cx
         drop(task_inner);
         insert_into_pid2process(child.getpid(), Arc::clone(&child));
         // add this thread to scheduler

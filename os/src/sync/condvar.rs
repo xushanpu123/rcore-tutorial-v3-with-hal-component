@@ -1,9 +1,10 @@
 use crate::sync::{Mutex, UPIntrFreeCell};
 use crate::task::{
-    block_current_and_run_next, block_current_task, current_task, wakeup_task, TaskContext,
+    block_current_and_run_next, block_current_task, current_task, wakeup_task,
     TaskControlBlock,
 };
 use alloc::{collections::VecDeque, sync::Arc};
+use polyhal::KContext;
 
 pub struct Condvar {
     pub inner: UPIntrFreeCell<CondvarInner>,
@@ -40,7 +41,7 @@ impl Condvar {
     }
     */
 
-    pub fn wait_no_sched(&self) -> *mut TaskContext {
+    pub fn wait_no_sched(&self) -> *mut KContext {
         self.inner.exclusive_session(|inner| {
             inner.wait_queue.push_back(current_task().unwrap());
         });

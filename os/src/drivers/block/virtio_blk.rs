@@ -1,3 +1,5 @@
+use log::{debug, error, info};
+
 use super::BlockDevice;
 use crate::drivers::bus::virtio::VirtioHal;
 use crate::sync::{Condvar, UPIntrFreeCell};
@@ -7,7 +9,7 @@ use alloc::collections::BTreeMap;
 use virtio_drivers::{BlkResp, RespStatus, VirtIOBlk, VirtIOHeader};
 
 #[allow(unused)]
-const VIRTIO0: usize = 0x10008000;
+const VIRTIO0: usize = 0x10008000 + 0xffff_ffc0_0000_0000;
 
 pub struct VirtIOBlock {
     virtio_blk: UPIntrFreeCell<VirtIOBlk<'static, VirtioHal>>,
@@ -17,7 +19,9 @@ pub struct VirtIOBlock {
 impl BlockDevice for VirtIOBlock {
     fn read_block(&self, block_id: usize, buf: &mut [u8]) {
         let nb = *DEV_NON_BLOCKING_ACCESS.exclusive_access();
+        debug!("sadoiaghy, nb: {}", nb);
         if nb {
+            debug!("sadoiaghy, nb22: {}", nb);
             let mut resp = BlkResp::default();
             let task_cx_ptr = self.virtio_blk.exclusive_session(|blk| {
                 let token = unsafe { blk.read_block_nb(block_id, buf, &mut resp).unwrap() };
@@ -30,6 +34,7 @@ impl BlockDevice for VirtIOBlock {
                 "Error when reading VirtIOBlk"
             );
         } else {
+            debug!("sadoiaghy, nb333: {}", nb);
             self.virtio_blk
                 .exclusive_access()
                 .read_block(block_id, buf)

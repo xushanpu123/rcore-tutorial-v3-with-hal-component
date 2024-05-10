@@ -1,12 +1,12 @@
 use super::File;
 use crate::drivers::BLOCK_DEVICE;
-use crate::mm::UserBuffer;
 use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use bitflags::*;
 use easy_fs::{EasyFileSystem, Inode};
 use lazy_static::*;
+use log::error;
 
 pub struct OSInode {
     readable: bool,
@@ -112,28 +112,20 @@ impl File for OSInode {
     fn writable(&self) -> bool {
         self.writable
     }
-    fn read(&self, mut buf: UserBuffer) -> usize {
+    fn read(&self, mut buf: &mut [u8]) -> usize {
         let mut inner = self.inner.exclusive_access();
         let mut total_read_size = 0usize;
-        for slice in buf.buffers.iter_mut() {
-            let read_size = inner.inode.read_at(inner.offset, *slice);
-            if read_size == 0 {
-                break;
-            }
-            inner.offset += read_size;
-            total_read_size += read_size;
-        }
+        let read_size = inner.inode.read_at(inner.offset, buf);
+        inner.offset += read_size;
+        total_read_size += read_size;
         total_read_size
     }
-    fn write(&self, buf: UserBuffer) -> usize {
+    fn write(&self, buf: &mut [u8]) -> usize {
         let mut inner = self.inner.exclusive_access();
         let mut total_write_size = 0usize;
-        for slice in buf.buffers.iter() {
-            let write_size = inner.inode.write_at(inner.offset, *slice);
-            assert_eq!(write_size, slice.len());
+            let write_size = inner.inode.write_at(inner.offset, buf);
             inner.offset += write_size;
             total_write_size += write_size;
-        }
         total_write_size
     }
 }

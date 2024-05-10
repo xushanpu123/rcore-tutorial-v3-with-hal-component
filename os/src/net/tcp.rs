@@ -47,22 +47,15 @@ impl File for TCP {
         true
     }
 
-    fn read(&self, mut buf: crate::mm::UserBuffer) -> usize {
+    fn read(&self, mut buf: &mut [u8]) -> usize {
         loop {
             if let Some(data) = pop_data(self.socket_index) {
                 let data_len = data.len();
                 let mut left = 0;
-                for i in 0..buf.buffers.len() {
-                    let buffer_i_len = buf.buffers[i].len().min(data_len - left);
-
-                    buf.buffers[i][..buffer_i_len]
-                        .copy_from_slice(&data[left..(left + buffer_i_len)]);
-
-                    left += buffer_i_len;
-                    if left == data_len {
-                        break;
-                    }
-                }
+                let buffer_i_len = buf.len().min(data_len - left);
+                buf[..buffer_i_len]
+                    .copy_from_slice(&data[left..(left + buffer_i_len)]);
+                left += buffer_i_len;
                 return left;
             } else {
                 net_interrupt_handler();
@@ -70,16 +63,14 @@ impl File for TCP {
         }
     }
 
-    fn write(&self, buf: crate::mm::UserBuffer) -> usize {
+    fn write(&self, buf: &mut [u8]) -> usize {
         let lose_net_stack = LOSE_NET_STACK.0.exclusive_access();
 
         let mut data = vec![0u8; buf.len()];
 
         let mut left = 0;
-        for i in 0..buf.buffers.len() {
-            data[left..(left + buf.buffers[i].len())].copy_from_slice(buf.buffers[i]);
-            left += buf.buffers[i].len();
-        }
+        data[left..(left + buf.len())].copy_from_slice(buf);
+        left += buf.len();
 
         let len = data.len();
 
