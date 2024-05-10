@@ -4,7 +4,7 @@ use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use lazy_static::*;
 use log::debug;
-use polyhal::{context_switch_pt, kernel_page_table, KContext, TrapFrame};
+use polyhal::{context_switch_pt, kernel_page_table, KContext, TrapFrame, context_switch};
 
 pub struct Processor {
     current: Option<Arc<TaskControlBlock>>,

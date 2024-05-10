@@ -28,8 +28,8 @@ target_path = ../user/target/riscv64gc-unknown-none-elf/release/
 [rustsbi] pmp03: 0x80200000..0x88000000 (xwr)
 [rustsbi] pmp04: 0x88000000..0x00000000 (-wr)
 [34m[INFO] src/logging.rs:65 logging module initialized[0m
-[34m[INFO] /home/jackhu/.cargo/git/checkouts/polyhal-b7d1defa7146e0b7/cff9ce7/src/riscv64/mod.rs:111 There has 1 CPU(s)[0m
-[34m[INFO] /home/jackhu/.cargo/git/checkouts/polyhal-b7d1defa7146e0b7/cff9ce7/src/riscv64/mod.rs:113 memory region 0x80000000 - 0x88000000[0m
+[34m[INFO] /home/jackhu/.cargo/git/checkouts/polyhal-b7d1defa7146e0b7/f152260/src/riscv64/mod.rs:111 There has 1 CPU(s)[0m
+[34m[INFO] /home/jackhu/.cargo/git/checkouts/polyhal-b7d1defa7146e0b7/f152260/src/riscv64/mod.rs:113 memory region 0x80000000 - 0x88000000[0m
 KERN: init plic
 /**** APPS ****
 [34m[INFO] /home/jackhu/.cargo/git/checkouts/virtio-drivers-4fdfaa862bcdc399/4ee80e5/src/blk.rs:24 device features: SEG_MAX | GEOMETRY | BLK_SIZE | SCSI | FLUSH | TOPOLOGY | CONFIG_WCE | DISCARD | WRITE_ZEROES | NOTIFY_ON_EMPTY | RING_INDIRECT_DESC | RING_EVENT_IDX[0m
@@ -95,20 +95,36 @@ gui_simple
 gui_snake
 sleep
 **************/
-[34m[INFO] src/main.rs:141 alloc page!![0m
-[34m[INFO] src/main.rs:143 alloc page done !! 0x812bc[0m
-[34m[INFO] src/main.rs:141 alloc page!![0m
-[34m[INFO] src/main.rs:143 alloc page done !! 0x812be[0m
-[34m[INFO] src/main.rs:141 alloc page!![0m
-[34m[INFO] src/main.rs:143 alloc page done !! 0x812bf[0m
+[34m[INFO] src/main.rs:142 alloc page: 0x812bc000[0m
+[34m[INFO] src/mm/memory_set.rs:61 current pagetable: PageTable(0x812bc000)[0m
+[34m[INFO] src/mm/memory_set.rs:86 start_va: 0x10000, end_va: 0x12608[0m
+[34m[INFO] src/main.rs:142 alloc page: 0x812be000[0m
+[34m[INFO] src/main.rs:142 alloc page: 0x812bf000[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x10, ppn: 0x812bd[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x11, ppn: 0x812c0[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x12, ppn: 0x812c1[0m
+[34m[INFO] src/mm/memory_set.rs:86 start_va: 0x13000, end_va: 0x13ad8[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x13, ppn: 0x812c2[0m
+[34m[INFO] src/mm/memory_set.rs:86 start_va: 0x14000, end_va: 0x1c352[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x14, ppn: 0x812c3[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x15, ppn: 0x812c4[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x16, ppn: 0x812c5[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x17, ppn: 0x812c6[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x18, ppn: 0x812c7[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x19, ppn: 0x812c8[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x1a, ppn: 0x812c9[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x1b, ppn: 0x812ca[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x1c, ppn: 0x812cb[0m
 [34m[INFO] src/task/id.rs:122 user stack 0x1e000 - 0x20000[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x1e, ppn: 0x812cc[0m
+[34m[INFO] src/mm/memory_set.rs:172 vpn: 0x1f, ppn: 0x812cd[0m
 [32m[DEBUG] src/task/processor.rs:57 context switch to task: 0xffffffc0802bdde0[0m
 [34m[INFO] src/main.rs:52 trap_type @ Time[0m
-[32m[DEBUG] src/task/processor.rs:57 context switch to task: 0xffffffc0802bdde0[0m
 [34m[INFO] src/main.rs:106 end of trap[0m
 [34m[INFO] src/main.rs:52 trap_type @ UserEnvCall[0m
 [34m[INFO] src/syscall/fs.rs:9 user write: fd=1, buf=0x1300b, len=11[0m
-[93m[WARN] src/fs/stdio.rs:40 user buf addr: 0x1300b[0m
+[34m[INFO] src/fs/stdio.rs:47 current pt: PageTable(0x812bc000)[0m
+[34m[INFO] src/fs/stdio.rs:48 paddr: 0x812c200b[0m
 [34m[INFO] src/main.rs:52 trap_type @ LoadPageFault(1300b)[0m
 [kernel] Segmentation Fault, SIGSEGV=11
 [kernel] Idle process exit with exit_code -11 ...

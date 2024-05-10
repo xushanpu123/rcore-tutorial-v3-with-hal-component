@@ -4,6 +4,12 @@ use super::File;
 use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
 
+use log::info;
+use polyhal::{addr::VirtAddr, debug::DebugConsole, pagetable::PageTable};
+
+use crate::task::{current_process, suspend_current_and_run_next};
+
+
 pub struct Stdin;
 pub struct Stdout;
 
@@ -37,7 +43,9 @@ impl File for Stdout {
         panic!("Cannot read from stdout!");
     }
     fn write(&self, user_buf: &mut [u8]) -> usize {
-        warn!("user buf addr: {:p}", user_buf.as_ptr());
+        let addr = current_process().inner_exclusive_access().get_user_token().translate(VirtAddr::new(user_buf.as_ptr() as _));
+        info!("current pt: {:?}", current_process().inner_exclusive_access().get_user_token());
+        info!("paddr: {:#x?}", addr.unwrap().0.addr());
         print!("{}", core::str::from_utf8(user_buf).unwrap());
         1
     }

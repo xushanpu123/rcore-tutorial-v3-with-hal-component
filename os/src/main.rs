@@ -32,7 +32,7 @@ use crate::drivers::chardev::UART;
 use lazy_static::*;
 use sync::UPIntrFreeCell;
 use crate::{syscall::syscall, task::check_signals_of_current};
-use crate::task::exit_current_and_run_next;
+use crate::task::{current_process, exit_current_and_run_next};
 use polyhal::{debug, TrapType::*};
 use log::*;
 use polyhal::{addr::PhysPage, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType, get_cpu_num, get_fdt};
@@ -78,7 +78,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             current_add_signal(SignalFlags::SIGILL);
         }
         Time => {
-            suspend_current_and_run_next();
+            // suspend_current_and_run_next();
         }
         SupervisorExternal => {
             log::debug!("entry SupervisorExternal");
@@ -139,6 +139,7 @@ impl PageAlloc for PageAllocImpl {
     #[inline]
     fn alloc(&self) -> PhysPage {
         let res = mm::frame_alloc_persist().expect("can't find memory page");
+        info!("alloc page: {:#x?}", res.as_num() << 12);
         res
     }
 

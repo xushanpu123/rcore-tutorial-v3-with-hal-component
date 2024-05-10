@@ -121,6 +121,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
         .exclusive_access()
         .alloc()
         .map(FrameTracker::new)
+        .inspect(|x| x.ppn.drop_clear())
 }
 
 pub fn frame_alloc_more(num: usize) -> Option<Vec<FrameTracker>> {
