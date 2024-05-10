@@ -2,9 +2,11 @@ use crate::fs::{make_pipe, open_file, OpenFlags};
 use crate::mm::{translated_byte_buffer, translated_refmut, translated_str};
 use crate::task::current_process;
 use alloc::sync::Arc;
+use log::info;
 use polyhal::pagetable::PageTable;
 
 pub fn sys_write(fd: usize, buf: *mut u8, len: usize) -> isize {
+    info!("user write: fd={}, buf={:p}, len={}", fd, buf, len);
     let process = current_process();
     let inner = process.inner_exclusive_access();
     if fd >= inner.fd_table.len() {
@@ -17,6 +19,7 @@ pub fn sys_write(fd: usize, buf: *mut u8, len: usize) -> isize {
         let file = file.clone();
         // release current task TCB manually to avoid multi-borrow
         drop(inner);
+        info!("sdada");
         file.write(translated_byte_buffer(PageTable::current(), buf, len)) as isize
     } else {
         -1

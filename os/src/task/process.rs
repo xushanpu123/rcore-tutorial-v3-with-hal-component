@@ -1,4 +1,5 @@
 use super::task_entry;
+use log::*;
 use super::id::RecycleAllocator;
 use super::manager::insert_into_pid2process;
 use super::TaskControlBlock;
@@ -196,6 +197,7 @@ impl ProcessControlBlock {
         trap_cx[TrapFrameArgs::SP] = user_sp;
         trap_cx[TrapFrameArgs::ARG0] = args.len();
         trap_cx[TrapFrameArgs::ARG1] = argv_base;
+        info!("exec end");
         // trap_cx.x[10] = args.len();
         // trap_cx.x[11] = argv_base;
         *task_inner.get_trap_cx() = trap_cx;

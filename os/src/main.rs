@@ -50,7 +50,7 @@ lazy_static! {
 
 #[polyhal::arch_interrupt]
 fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
-    log::trace!("trap_type @ {:x?} {:#x?}", trap_type, ctx);
+    log::info!("trap_type @ {:x?}", trap_type);
     // info!("current_task id: {}", current_task().is_some());
     match trap_type {
         Breakpoint => return,
@@ -59,7 +59,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             ctx.syscall_ok();
             let args = ctx.args();
             // get system call return value
-            // info!("syscall: {}", ctx[TrapFrameArgs::SYSCALL]);
+            info!("syscall: {}", ctx[TrapFrameArgs::SYSCALL]);
 
             let result = syscall(ctx[TrapFrameArgs::SYSCALL], [args[0], args[1], args[2]]);
             // cx is changed during sys_exec, so we have to call it again
@@ -105,6 +105,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
         // panic!("end");
         exit_current_and_run_next(errno);
     }
+    info!("end of trap");
 }
 
 #[polyhal::arch_entry]

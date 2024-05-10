@@ -3,6 +3,7 @@ use super::{ProcessControlBlock, TaskControlBlock};
 use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use lazy_static::*;
+use log::debug;
 use polyhal::{context_switch_pt, kernel_page_table, KContext, TrapFrame};
 
 pub struct Processor {
@@ -53,6 +54,7 @@ pub fn run_tasks() {
             // }
             // info!("switch to task: {:#x?}", unsafe { next_task_cx_ptr.as_ref().unwrap() });
             unsafe {
+                debug!("context switch to task: {:#x?}", next_task_cx_ptr);
                 context_switch_pt(idle_task_cx_ptr, next_task_cx_ptr, page_table);
             }
         } else {

@@ -3,10 +3,11 @@
 
 extern crate user_lib;
 
-use user_lib::{exec, fork, wait, yield_};
+use user_lib::{exec, fork, println, wait, yield_};
 
 #[no_mangle]
 fn main() -> i32 {
+    println!("entry user");
     if fork() == 0 {
         exec("user_shell\0", &[core::ptr::null::<u8>()]);
     } else {

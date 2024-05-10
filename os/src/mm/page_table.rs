@@ -5,7 +5,7 @@ use alloc::string::{String, ToString};
 use polyhal::pagetable::PageTable;
 
 pub fn translated_byte_buffer(_token: PageTable, ptr: *mut u8, len: usize) -> &'static mut [u8] {
-    log::trace!("os::mm::page_table::translated_byte_buffer");
+    log::error!("os::mm::page_table::translated_byte_buffer");
     unsafe { core::slice::from_raw_parts_mut(ptr, len) }
 }
 
