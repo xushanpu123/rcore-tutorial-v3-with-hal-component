@@ -19,7 +19,6 @@ pub fn sys_write(fd: usize, buf: *mut u8, len: usize) -> isize {
         let file = file.clone();
         // release current task TCB manually to avoid multi-borrow
         drop(inner);
-        info!("sdada");
         file.write(translated_byte_buffer(PageTable::current(), buf, len)) as isize
     } else {
         -1

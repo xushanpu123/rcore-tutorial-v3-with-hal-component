@@ -95,16 +95,20 @@ gui_simple
 gui_snake
 sleep
 **************/
+[34m[INFO] src/main.rs:141 alloc page!![0m
+[34m[INFO] src/main.rs:143 alloc page done !! 0x812bc[0m
+[34m[INFO] src/main.rs:141 alloc page!![0m
+[34m[INFO] src/main.rs:143 alloc page done !! 0x812be[0m
+[34m[INFO] src/main.rs:141 alloc page!![0m
+[34m[INFO] src/main.rs:143 alloc page done !! 0x812bf[0m
 [34m[INFO] src/task/id.rs:122 user stack 0x1e000 - 0x20000[0m
 [32m[DEBUG] src/task/processor.rs:57 context switch to task: 0xffffffc0802bdde0[0m
-[34m[INFO] src/main.rs:53 trap_type @ Time[0m
+[34m[INFO] src/main.rs:52 trap_type @ Time[0m
 [32m[DEBUG] src/task/processor.rs:57 context switch to task: 0xffffffc0802bdde0[0m
-[34m[INFO] src/main.rs:108 end of trap[0m
-[34m[INFO] src/main.rs:53 trap_type @ UserEnvCall[0m
-[34m[INFO] src/main.rs:62 syscall: 64[0m
+[34m[INFO] src/main.rs:106 end of trap[0m
+[34m[INFO] src/main.rs:52 trap_type @ UserEnvCall[0m
 [34m[INFO] src/syscall/fs.rs:9 user write: fd=1, buf=0x1300b, len=11[0m
-[34m[INFO] src/syscall/fs.rs:22 sdada[0m
-[31m[ERROR] src/mm/page_table.rs:8 os::mm::page_table::translated_byte_buffer[0m
-[34m[INFO] src/main.rs:53 trap_type @ LoadPageFault(1300b)[0m
+[93m[WARN] src/fs/stdio.rs:40 user buf addr: 0x1300b[0m
+[34m[INFO] src/main.rs:52 trap_type @ LoadPageFault(1300b)[0m
 [kernel] Segmentation Fault, SIGSEGV=11
 [kernel] Idle process exit with exit_code -11 ...

@@ -20,7 +20,6 @@ mod fs;
 mod lang_items;
 mod mm;
 mod net;
-mod sbi;
 mod sync;
 mod syscall;
 mod task;
@@ -59,7 +58,6 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             ctx.syscall_ok();
             let args = ctx.args();
             // get system call return value
-            info!("syscall: {}", ctx[TrapFrameArgs::SYSCALL]);
 
             let result = syscall(ctx[TrapFrameArgs::SYSCALL], [args[0], args[1], args[2]]);
             // cx is changed during sys_exec, so we have to call it again
@@ -116,12 +114,6 @@ pub fn rust_main(_hartid: usize) -> ! {
     get_mem_areas().into_iter().for_each(|(start, size)|{
         mm::init_frame_allocator(start, start+size);
     });
-    // debug!("cpu num: {}", get_cpu_num());
-    // let fdt = get_fdt().unwrap();
-    // fdt.all_nodes().into_iter().for_each(|node| {
-    //     debug!("node: name{}", node.name);
-    // });
-    // while(true) {}
     UART.init();
     println!("KERN: init plic");
     // println!("KERN: init gpu");
@@ -146,7 +138,8 @@ pub struct PageAllocImpl;
 impl PageAlloc for PageAllocImpl {
     #[inline]
     fn alloc(&self) -> PhysPage {
-        mm::frame_alloc_persist().expect("can't find memory page")
+        let res = mm::frame_alloc_persist().expect("can't find memory page");
+        res
     }
 
     #[inline]

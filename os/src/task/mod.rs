@@ -8,7 +8,7 @@ mod task;
 
 use self::id::TaskUserRes;
 use crate::fs::{open_file, OpenFlags};
-use crate::sbi::shutdown;
+use polyhal::shutdown;
 use polyhal::{run_user_task, KContext, TrapFrame};
 use alloc::{sync::Arc, vec::Vec};
 use lazy_static::*;
@@ -94,10 +94,10 @@ pub fn exit_current_and_run_next(exit_code: i32) {
             );
             if exit_code != 0 {
                 //crate::sbi::shutdown(255); //255 == -1 for err hint
-                shutdown(true);
+                shutdown();
             } else {
                 //crate::sbi::shutdown(0); //0 for success hint
-                shutdown(false);
+                shutdown();
             }
         }
         remove_from_pid2process(pid);

@@ -1,3 +1,5 @@
+use log::warn;
+
 use super::File;
 use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
@@ -35,6 +37,7 @@ impl File for Stdout {
         panic!("Cannot read from stdout!");
     }
     fn write(&self, user_buf: &mut [u8]) -> usize {
+        warn!("user buf addr: {:p}", user_buf.as_ptr());
         print!("{}", core::str::from_utf8(user_buf).unwrap());
         1
     }
