@@ -17,6 +17,7 @@ use crate::config::{MAX_APP_NUM,PAGE_SIZE};
 use crate::loader::{get_num_app,get_ksp,get_base_i};
 use crate::polyhal::shutdown;
 use crate::sync::UPSafeCell;
+use alloc::boxed::Box;
 use log::info;
 use alloc::vec::Vec;
 use lazy_static::*;
@@ -170,10 +171,12 @@ fn mark_current_suspended() {
 
 fn task_entry() {
     let app_id = TASK_MANAGER.current_task();
-    let mut trap_cx = TrapFrame::new();
+    // 这里的 Box::new 是为了保证 TrapFrame 能够被被正确的对齐
+    // 如果没有 Box::new 在使用 x86_64 的时候会由于地址没有对齐导致 #GP 错误
+    let mut trap_cx = Box::new(TrapFrame::new());
     trap_cx[TrapFrameArgs::SEPC] = get_base_i(app_id);
     trap_cx[TrapFrameArgs::SP] = 0x1_8000_0000 + (app_id+1)*PAGE_SIZE;
-    let ctx_mut = unsafe { (&mut trap_cx as *mut TrapFrame).as_mut().unwrap() };
+    let ctx_mut = trap_cx.as_mut();
     loop {
         run_user_task(ctx_mut);
     }
