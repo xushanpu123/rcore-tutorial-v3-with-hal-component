@@ -9,7 +9,7 @@ use user_lib::{Display, VIRTGPU_XRES, VIRTGPU_YRES};
 use embedded_graphics::pixelcolor::Rgb888;
 use embedded_graphics::prelude::{DrawTarget, Drawable, Point, RgbColor, Size};
 use embedded_graphics::primitives::{Circle, Primitive, PrimitiveStyle, Rectangle, Triangle};
-
+use user_lib::println;
 const INIT_X: i32 = 80;
 const INIT_Y: i32 = 400;
 const RECT_SIZE: u32 = 150;

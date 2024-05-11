@@ -70,13 +70,14 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
                 current_trap_cx().sepc,
             );
             */
+            info!("stval: {:#x}", _paddr);
             current_add_signal(SignalFlags::SIGSEGV);
         }
         IllegalInstruction(_) => {
             current_add_signal(SignalFlags::SIGILL);
         }
         Time => {
-            // suspend_current_and_run_next();
+            suspend_current_and_run_next();
         }
         SupervisorExternal => {
             let mut plic: PLIC = unsafe { PLIC::new(VIRT_PLIC) };
@@ -113,14 +114,12 @@ pub fn rust_main(_hartid: usize) -> ! {
     });
     UART.init();
     println!("KERN: init plic");
-    // println!("KERN: init gpu");
-    // let _gpu = GPU_DEVICE.clone();
-    // println!("KERN: init keyboard");
-    // let _keyboard = KEYBOARD_DEVICE.clone();
-    // println!("KERN: init mouse");
-    // let _mouse = MOUSE_DEVICE.clone();
-    // println!("KERN: init trap");
-    // timer::set_next_trigger();
+     println!("KERN: init gpu");
+    let _gpu = GPU_DEVICE.clone();
+    println!("KERN: init keyboard");
+    let _keyboard = KEYBOARD_DEVICE.clone();
+    println!("KERN: init mouse");
+    let _mouse = MOUSE_DEVICE.clone();
     board::device_init();
     fs::list_apps();
     task::add_initproc();

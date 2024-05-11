@@ -5,7 +5,7 @@ use core::any::Any;
 use embedded_graphics::pixelcolor::Rgb888;
 use tinybmp::Bmp;
 use virtio_drivers::{VirtIOGpu, VirtIOHeader};
-const VIRTIO7: usize = 0x10007000;
+const VIRTIO7: usize = 0x10007000 + 0xffff_ffc0_0000_0000;
 pub trait GpuDevice: Send + Sync + Any {
     fn update_cursor(&self);
     fn get_framebuffer(&self) -> &mut [u8];
