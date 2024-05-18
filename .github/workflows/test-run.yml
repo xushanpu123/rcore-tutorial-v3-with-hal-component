@@ -2,7 +2,7 @@ name: test-run
 
 
 env:
-  MAIN_REPO: Azure-stars/rcore-tutorial-v3-with-hal-component
+  MAIN_REPO: sysones/rcore-tutorial-v3-with-hal-component
   BRANCH: ch7
 on: 
   push:
