@@ -76,8 +76,8 @@ jobs:
       run: |
         git clone https://github.com/${{env.MAIN_REPO}}.git ${{ env.WORKING_DIRECTORY }}
         cd ${{ env.WORKING_DIRECTORY }}
-        git checkout ${{ github.env.BRANCH }}
-        sh ${{ env.WORKING_DIRECTORY }}/tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
+        git checkout ${{ env.BRANCH }}
+        sh tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
     - name: Update Top Repository
       working-directory: ${{ env.WORKING_DIRECTORY }}
       run: cd os && PATH=$PATH:~/.cargo/bin make pre_update
