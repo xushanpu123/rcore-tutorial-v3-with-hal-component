@@ -37,7 +37,7 @@ jobs:
       - id: step2
         if: github.repository == env.MAIN_REPO 
         run: |
-          echo "ToptTestDirectory=./" >> $GITHUB_OUTPUT
+          echo "TopTestDirectory=." >> $GITHUB_OUTPUT
     outputs:
       TopTestDirectory: ${{ steps.step1.outputs.TopTestDirectory || steps.step2.outputs.TopTestDirectory }}
       
@@ -81,6 +81,7 @@ jobs:
       working-directory: ${{ env.WORKING_DIRECTORY }}
       run: cd os && PATH=$PATH:~/.cargo/bin make pre_update
     - name: Patch for caller repository
+      if: github.repository != env.MAIN_REPO
       run: sh ${{ env.WORKING_DIRECTORY }}/tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
     - name: Test ${{ matrix.arch }}
       working-directory: ${{ env.WORKING_DIRECTORY }}
