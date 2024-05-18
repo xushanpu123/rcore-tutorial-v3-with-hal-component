@@ -77,11 +77,11 @@ jobs:
         git clone https://github.com/${{env.MAIN_REPO}}.git ${{ env.WORKING_DIRECTORY }}
         cd ${{ env.WORKING_DIRECTORY }}
         git checkout ${{ env.BRANCH }}
-        sh tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
     - name: Update Top Repository
       working-directory: ${{ env.WORKING_DIRECTORY }}
       run: cd os && PATH=$PATH:~/.cargo/bin make pre_update
-      
+    - name: Patch for caller repository
+      run: sh ${{ env.WORKING_DIRECTORY }}/tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
     - name: Test ${{ matrix.arch }}
       working-directory: ${{ env.WORKING_DIRECTORY }}
       run: cd os && PATH=$PATH:~/.cargo/bin make ARCH=${{ matrix.arch }} build
