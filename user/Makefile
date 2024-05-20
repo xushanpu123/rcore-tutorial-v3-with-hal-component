@@ -13,7 +13,7 @@ CP := cp
 TEST ?= 
 
 elf: $(APPS)
-	@cargo build --release
+	@cargo build -Z build-std --target $(TARGET) --release
 ifeq ($(TEST), 1)
 	@$(CP) $(TARGET_DIR)/usertests $(TARGET_DIR)/initproc
 endif
