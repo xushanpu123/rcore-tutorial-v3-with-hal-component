@@ -22,4 +22,5 @@ PATCH_COMMIT_HASH=$4
 
 # To do the patch for current commit
 cd $PATCH_TOOL_DIR
+echo "cargo run -- ../../os $PATCH_PACKAGE $PATCH_TARGET_URL $PATCH_COMMIT_HASH"
 cargo run -- ../../os $PATCH_PACKAGE $PATCH_TARGET_URL $PATCH_COMMIT_HASH
