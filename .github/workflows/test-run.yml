@@ -85,6 +85,8 @@ jobs:
       run: sh ${{ env.WORKING_DIRECTORY }}/tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
     - name: Test ${{ matrix.arch }}
       working-directory: ${{ env.WORKING_DIRECTORY }}
-      run: cd os && PATH=$PATH:~/.cargo/bin make ARCH=${{ matrix.arch }} run TEST=1
-      timeout-minutes: 10
+      run: cd os && (PATH=$PATH:~/.cargo/bin timeout 300 make ARCH=${{ matrix.arch }} run TEST=1 > output.log) || echo "qemu exited！"
+      timeout-minutes: 6
+    - name: check Testing output log
+      run: grep "Usertests passed!" os/output.log
 
