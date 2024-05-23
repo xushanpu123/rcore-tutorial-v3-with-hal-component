@@ -65,7 +65,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install generaic tools
-      run: yes | pacman -Syy make cmake rustup gcc git openssh
+      run: yes | pacman -Syy make cmake rustup gcc git openssh ${{ matrix.packages }}
     - name: setup rust toolchain
       run: rustup default nightly && cargo install cargo-binutils && cargo install kbuild
     - name: setup environment
