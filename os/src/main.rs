@@ -91,7 +91,7 @@ fn main(hartid: usize) {
     }
     println!("[kernel] Hello, world!");
     mm::init_heap();
-    logging::init(Some("trace"));
+    logging::init(Some("info"));
     println!("init logging");
     // polyhal::init_interrupt(); done in polyhal::CPU::rust_main()
 
