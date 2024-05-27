@@ -6,6 +6,8 @@
 .idea
 **/Cargo.lock
 **/target/
+/bin
+/.bin
 
 os/src/link_app.S
 os/src/linker.ld

@@ -9,6 +9,8 @@ edition = "2021"
 [dependencies]
 log = "0.4"
 buddy_system_allocator = "0.6"
-polyhal = { git = "https://github.com/chyyuu/polyhal.git", features = ["kcontext"]}
+polyhal = { git = "https://github.com/Huzhiwen1208/polyhal.git", branch = "feature/libos-sup", features = [
+    "kcontext",
+] }
 [profile.release]
 debug = true
