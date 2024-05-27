@@ -1,3 +1,8 @@
+#### run ci in local
+# wget https://raw.githubusercontent.com/nektos/act/master/install.sh
+# sh install.sh
+# sudo ./bin/act
+
 name: Build Rust Doc And Run tests
 
 on: [push]
@@ -44,22 +49,22 @@ jobs:
       - name: Cache QEMU
         uses: actions/cache@v3
         with:
-          path: qemu-8.2.0
-          key: qemu-8.2.0-x86_64-riscv64
+          path: qemu-8.2.1
+          key: qemu-8.2.1-x86_64-riscv64
       - name: Install QEMU
         run: |
           wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip
           unzip ninja-linux.zip
           sudo mv ninja /usr/local/bin/
           ninja --version
-          if [ ! -d qemu-8.2.0 ]; then
-            wget https://download.qemu.org/qemu-8.2.0.tar.xz
-            tar -xf qemu-8.2.0.tar.xz
-            cd qemu-8.2.0
+          if [ ! -d qemu-8.2.1 ]; then
+            wget https://download.qemu.org/qemu-8.2.1.tar.xz
+            tar -xf qemu-8.2.1.tar.xz
+            cd qemu-8.2.1
             ./configure --target-list=riscv64-softmmu,x86_64-softmmu,loongarch64-softmmu,aarch64-softmmu
             make -j
           else
-            cd qemu-8.2.0
+            cd qemu-8.2.1
           fi
           sudo make install
           qemu-system-riscv64 --version
