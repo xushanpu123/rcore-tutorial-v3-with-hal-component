@@ -7,8 +7,10 @@ pub const MMIO: &[(usize, usize)] = &[
     (0xc000000, 0x210000), // VIRT_PLIC in virt machine
     (0x10000000, 0x9000),  // VIRT_UART0 with GPU  in virt machine
 ];
-
+#[cfg(any(target_arch = "riscv64", target_arch = "aarch64"))]
 pub type BlockDeviceImpl = crate::drivers::block::VirtIOBlock;
+
+
 pub type CharDeviceImpl = crate::drivers::chardev::NS16550a<VIRT_UART>;
 
 pub const VIRT_PLIC: usize = 0xC00_0000 + 0xffff_ffc0_0000_0000;

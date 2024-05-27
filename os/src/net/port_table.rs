@@ -1,7 +1,7 @@
 use alloc::{sync::Arc, vec::Vec};
 use lazy_static::lazy_static;
 use lose_net_stack::packets::tcp::TCPPacket;
-
+use polyhal::{TrapFrame,TrapFrameArgs};
 use crate::fs::File;
 use crate::sync::UPIntrFreeCell;
 use crate::task::TaskControlBlock;
@@ -104,7 +104,7 @@ pub fn accept_connection(_port: u16, tcp_packet: &TCPPacket, task: Arc<TaskContr
     inner.fd_table[fd] = Some(Arc::new(tcp_socket));
 
     let cx = task.inner_exclusive_access().get_trap_cx();
-    cx.x[10] = fd;
+    cx[TrapFrameArgs::ARG0] = fd;
 }
 
 // store in the fd_table, delete the listen table when close the application.

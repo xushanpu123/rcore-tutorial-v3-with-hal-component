@@ -5,7 +5,7 @@ use core::{
 
 extern crate alloc;
 
-use easyfs::BlockDevice;
+use easy_fs::BlockDevice;
 use log::info;
 
 // 虚拟IO设备
@@ -43,6 +43,8 @@ impl BlockDevice for RamDiskBlock {
             // let dest = (self.start as *mut [u8; 512]).add(sector_offset);
             // dest.as_mut().unwrap().copy_from_slice(buf);
         }
+    }
+    fn handle_irq(&self) {
     }
 }
 

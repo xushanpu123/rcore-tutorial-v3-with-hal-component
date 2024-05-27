@@ -2,6 +2,7 @@ use crate::net::port_table::{accept, listen, port_acceptable, PortFd};
 use crate::net::udp::UDP;
 use crate::net::{net_interrupt_handler, IPv4};
 use crate::task::{current_process, current_task, current_trap_cx};
+use polyhal::TrapFrameArgs;
 use alloc::sync::Arc;
 
 // just support udp
@@ -49,5 +50,5 @@ pub fn sys_accept(port_index: usize) -> isize {
     }
 
     let cx = current_trap_cx();
-    cx.x[10] as isize
+    cx[TrapFrameArgs::ARG0] as isize
 }

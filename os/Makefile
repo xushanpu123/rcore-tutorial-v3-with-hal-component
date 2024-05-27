@@ -1,5 +1,28 @@
 # Building
-TARGET := riscv64gc-unknown-none-elf
+ARCH := riscv64
+ifeq ($(ARCH), x86_64)
+  TARGET := x86_64-unknown-none
+  QEMU_EXEC += qemu-system-x86_64 \
+				-serial mon:stdio \
+				-machine q35 \
+				-kernel $(KERNEL_ELF) \
+				-cpu IvyBridge-v2 \
+				-device virtio-gpu-pci -vga none \
+				-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:5555
+  BUS := pci
+else ifeq ($(ARCH), riscv64)
+  TARGET := riscv64gc-unknown-none-elf
+  QEMU_EXEC += qemu-system-$(ARCH) \
+				-machine virt \
+				-device virtio-blk-device,drive=x0, \
+				-kernel $(KERNEL_BIN)
+else ifeq ($(ARCH), aarch64)
+  TARGET := aarch64-unknown-none-softfloat
+  QEMU_EXEC += qemu-system-$(AR	-serial mon:stdio \ -kernel $(KERNEL_ELF)
+  BUS := pci
+else
+  $(error "ARCH" must be one of "x86_64", "riscv64", "aarch64" or "loongarch64")
+endif
 MODE := release
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
@@ -31,79 +54,62 @@ OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
 
 # Disassembly
-DISASM ?= -x
-
-# Run usertests or usershell
-TEST ?=
-
-build: env $(KERNEL_BIN) fs-img 
-
+DISASM ?= -x		
 env:
-	(rustup target list | grep "riscv64gc-unknown-none-elf (installed)") || rustup target add $(TARGET)
+	(rustup target list | grep "$(TARGET) (installed)") || rustup target add $(TARGET)
 	cargo install cargo-binutils
 	rustup component add rust-src
 	rustup component add llvm-tools-preview
+
+build: env $(KERNEL_BIN) fs-img 
 
 $(KERNEL_BIN): kernel
 	@$(OBJCOPY) $(KERNEL_ELF) --strip-all -O binary $@
 
 fs-img: $(APPS)
-	@cd ../user && make build TEST=$(TEST)
+	@cd ../user && make build TARGET=$(TARGET) TEST=$(TEST)
 	@rm -f $(FS_IMG)
-	@cd ../easy-fs-fuse && cargo run --release -- -s ../user/src/bin/ -t ../user/target/riscv64gc-unknown-none-elf/release/
+	@cargo install easyfs-packer && easyfs-packer -s ../user/src/bin/ -t ../user/target/$(TARGET)/release/
+	cp ../user/target/$(TARGET)/$(MODE)/fs.img fs-img.img
 
 $(APPS):
 
 kernel:
 	@echo Platform: $(BOARD)
-	@cp src/linker-$(BOARD).ld src/linker.ld
-	@cargo build --release
-	@rm src/linker.ld
+	@cargo build -Z build-std --release --target $(TARGET)
 
 clean:
 	@cargo clean
 
-disasm: kernel
-	@$(OBJDUMP) $(DISASM) $(KERNEL_ELF) | less
-
-disasm-vim: kernel
-	@$(OBJDUMP) $(DISASM) $(KERNEL_ELF) > $(DISASM_TMP)
-	@nvim $(DISASM_TMP)
-	@rm $(DISASM_TMP)
-
 run: run-inner
 
-QEMU_ARGS := -machine virt \
-			 -bios $(BOOTLOADER) \
-			 -serial stdio \
+ifeq ($(ARCH), riscv64)
+QEMU_EXEC += -drive file=$(FS_IMG),if=none,format=raw,id=x0
+endif
+QEMU_EXEC += -smp 1 \
+			 -D qemu.log -d in_asm,int,pcall,cpu_reset,guest_errors \
 			 $(GUI_OPTION) \
-			 -device loader,file=$(KERNEL_BIN),addr=$(KERNEL_ENTRY_PA) \
-			 -drive file=$(FS_IMG),if=none,format=raw,id=x0 \
-			 -device virtio-blk-device,drive=x0 \
-			 -device virtio-gpu-device \
-			 -device virtio-keyboard-device \
-			 -device virtio-mouse-device \
-			 -device virtio-net-device,netdev=net0 \
-			 -netdev user,id=net0,hostfwd=udp::6200-:2000,hostfwd=tcp::6201-:80
+			 -device virtio-keyboard-pci \
+			 -device virtio-mouse-pci \
+			#  -serial stdio \
+			#  -device virtio-gpu-device \
+			#  -device virtio-net-device,netdev=net0 \
+			#  -netdev user,id=net0,hostfwd=udp::6200-:2000,hostfwd=tcp::6201-:80
+
 
 fdt:
-	@qemu-system-riscv64 -M 128m -machine virt,dumpdtb=virt.out
+	qemu-system-$(ARCH) -M 128m -machine virt,dumpdtb=virt.out
 	fdtdump virt.out
 
 run-inner: build
-	@qemu-system-riscv64 $(QEMU_ARGS)
+	$(QEMU_EXEC)
 
 debug: build
 	@tmux new-session -d \
-		"qemu-system-riscv64 $(QEMU_ARGS) -s -S" && \
-		tmux split-window -h "riscv64-unknown-elf-gdb -ex 'file $(KERNEL_ELF)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234'" && \
+		"$(QEMU_EXEC) -s -S" && \
+		tmux split-window -h "gdb -ex 'file $(KERNEL_ELF)' -ex 'target remote localhost:1234'" && \
 		tmux -2 attach-session -d
 
 
 gdbserver: build
-	@qemu-system-riscv64 $(QEMU_ARGS) -s -S
-
-gdbclient:
-	@riscv64-unknown-elf-gdb -ex 'file $(KERNEL_ELF)' -ex 'set arch riscv:rv64' -ex 'target remote localhost:1234'
-
-.PHONY: build env kernel clean disasm disasm-vim run-inner fs-img gdbserver gdbclient fdt
+	@$(QEMU_EXEC) -s -	echo "exec"el clean disasm disasm-vim run-inner fs-img gdbserver gdbclient fdt
