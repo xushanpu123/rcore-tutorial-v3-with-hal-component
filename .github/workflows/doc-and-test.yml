@@ -56,10 +56,19 @@ jobs:
         run: cd os && make run TEST=1 ARCH=aarch64
         timeout-minutes: 10
 
-      # - name: Run usertests in LoongArch64
-      #   run: cd os && make run TEST=1 ARCH=loongarch64
-      #   timeout-minutes: 10
-      
       - name: Run usertests in x86_64
         run: cd os && make run TEST=1 ARCH=x86_64
         timeout-minutes: 10
+      - name: Run usertests in loongarch64
+        run: |
+            cd os
+            (make run ARCH=loongarch64 & echo $! > pidfile) | while IFS= read -r line
+            do
+              echo "$line"
+              if echo "$line" | grep -q "All applications completed!"
+              then
+                kill $(cat pidfile)
+                wait $(cat pidfile)
+                exit 0
+              fi
+            done
