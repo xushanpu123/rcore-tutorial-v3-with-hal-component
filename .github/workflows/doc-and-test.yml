@@ -60,7 +60,10 @@ jobs:
               echo "$line"
               if echo "$line" | grep -q "All applications completed!"
               then
-                kill $(cat pidfile)
+                if ps -p $(cat pidfile) > /dev/null
+                then
+                  kill $(cat pidfile)
+                fi
                 exit 0
               fi
             done
