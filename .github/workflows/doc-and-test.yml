@@ -12,15 +12,6 @@ jobs:
     strategy:
       matrix:
         arch: [riscv64, aarch64, x86_64, loongarch64]
-        include:
-          - arch: riscv64
-            qemu-exc: qemu-system-riscv64
-          - arch: aarch64
-            qemu-exc: qemu-system-aarch64
-          - arch: x86_64
-            qemu-exc: qemu-system-x86_64
-          - arch: loongarch64
-            qemu-exc: qemu-system-loongarch64
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -62,11 +53,11 @@ jobs:
           qemu-system-x86_64 --version
 
       - name: Run usertests in ${{ matrix.arch }}
-        working-directory: ${{ github.workspace }}
-        run: | 
+        run: |
           cd os 
           (make run ARCH=${{ matrix.arch }} & echo $! > pidfile) | while IFS= read -r line
             do
+              echo "$line"
               if echo "$line" | grep -q "All applications completed!"
               then
                 kill $(cat pidfile)
