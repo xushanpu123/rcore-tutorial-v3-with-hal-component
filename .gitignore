@@ -25,3 +25,6 @@ easy-fs-fuse/target/*
 tools/
 pushall.sh
 *.bak
+
+*log*
+/bin
