@@ -24,7 +24,6 @@
 #![feature(alloc_error_handler)]
 
 extern crate alloc;
-extern crate polyhal;
 
 #[macro_use]
 extern crate bitflags;

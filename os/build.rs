@@ -41,7 +41,7 @@ fn insert_app_data() -> Result<()> {
     writeln!(
         f,
         r#"
-    .align 3
+    .align 2
     .section .data
     .global _num_app
 _num_app:
@@ -63,7 +63,7 @@ _num_app:
         .section .data
         .global app_{0}_start
         .global app_{0}_end
-        .align 3
+        .align 2
     app_{0}_start:
         .incbin "{2}{1}"
     app_{0}_end:"#,

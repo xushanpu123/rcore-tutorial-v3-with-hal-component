@@ -14,7 +14,7 @@
 mod task;
 
 use crate::loader::{get_num_app,get_app_data};
-use crate::polyhal::shutdown;
+use polyhal::shutdown;
 use crate::sync::UPSafeCell;
 use log::info;
 use alloc::vec::Vec;
@@ -145,7 +145,6 @@ impl TaskManager {
 
 /// run first task
 pub fn run_first_task() {
-    println!("123");
     TASK_MANAGER.run_first_task();
 }
 
