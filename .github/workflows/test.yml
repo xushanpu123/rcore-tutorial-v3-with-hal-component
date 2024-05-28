@@ -60,4 +60,4 @@ jobs:
       
       - name: Checkout output
         run : |
-          grep -q "Usertests passed" os/output.log && exit 1 || exit 0
+          grep "Usertests passed" os/output.log
