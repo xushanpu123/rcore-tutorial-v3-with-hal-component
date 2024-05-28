@@ -1,8 +1,3 @@
-#### run ci in local
-# wget https://raw.githubusercontent.com/nektos/act/master/install.sh
-# sh install.sh
-# sudo ./bin/act
-
 name: Build Rust Doc And Run tests
 
 on: [push]
@@ -14,6 +9,9 @@ env:
 jobs:
   run-tests:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [riscv64, aarch64, x86_64, loongarch64]
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -34,6 +32,7 @@ jobs:
           key: qemu-8.2.1-x86_64-riscv64
       - name: Install QEMU
         run: |
+          echo ${{ github.workspace }}
           wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip
           unzip ninja-linux.zip
           sudo mv ninja /usr/local/bin/
@@ -53,18 +52,16 @@ jobs:
           qemu-system-loongarch64 --version
           qemu-system-x86_64 --version
 
-      - name: Run usertests in RISC-V
-        run: cd os && make run TEST=1
-        timeout-minutes: 10
-      
-      - name: Run usertests in AArch64
-        run: cd os && make run TEST=1 ARCH=aarch64
-        timeout-minutes: 10
-
-      # - name: Run usertests in LoongArch64
-      #   run: cd os && make run TEST=1 ARCH=loongarch64
-      #   timeout-minutes: 10
-      
-      - name: Run usertests in x86_64
-        run: cd os && make run TEST=1 ARCH=x86_64
-        timeout-minutes: 10
+      - name: Run usertests in ${{ matrix.arch }}
+        run: |
+          cd os 
+          (make run ARCH=${{ matrix.arch }} & echo $! > pidfile) | while IFS= read -r line
+            do
+              echo "$line"
+              if echo "$line" | grep -q "All applications completed!"
+              then
+                kill $(cat pidfile)
+                exit 0
+              fi
+            done
+        timeout-minutes: 4
