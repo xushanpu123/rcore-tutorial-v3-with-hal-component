@@ -6,9 +6,15 @@ BINS := $(patsubst $(APP_DIR)/%.rs, $(TARGET_DIR)/%.bin, $(APPS))
 
 OBJDUMP := rust-objdump --arch-name=$(ARCH)
 OBJCOPY := rust-objcopy --binary-architecture=$(ARCH)
+CP := cp 
+
+TEST ?= 
 
 elf: $(APPS)
 	@cargo build -Z build-std=alloc,core --release --target ${TARGET}
+ifeq ($(TEST), 1)
+	@$(CP) $(TARGET_DIR)/usertests $(TARGET_DIR)/initproc
+endif
 
 binary: elf
 	@$(foreach elf, $(ELFS), $(OBJCOPY) $(elf) --strip-all -O binary $(patsubst $(TARGET_DIR)/%, $(TARGET_DIR)/%.bin, $(elf));)

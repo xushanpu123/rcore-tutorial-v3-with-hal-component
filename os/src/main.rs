@@ -24,6 +24,7 @@
 #![feature(alloc_error_handler)]
 
 extern crate alloc;
+extern crate polyhal;
 
 #[macro_use]
 extern crate bitflags;
@@ -70,11 +71,11 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
         }
         StorePageFault(_paddr) | LoadPageFault(_paddr) | InstructionPageFault(_paddr) => {
             println!("[kernel] PageFault in application, kernel killed it. paddr={:x}",_paddr);
-            exit_current_and_run_next();
+            exit_current_and_run_next(-2);
         }
         IllegalInstruction(_) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
-            exit_current_and_run_next();
+            exit_current_and_run_next(-2);
         }
         Time => {
             suspend_current_and_run_next();
@@ -87,7 +88,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
 
 #[polyhal::arch_entry]
 pub fn main(hartid: usize){
-    trace!("ch4 main start: hartid: {}", hartid);
+    trace!("ch5 main start: hartid: {}", hartid);
     if hartid != 0 {
         return;
     }
@@ -100,8 +101,12 @@ pub fn main(hartid: usize){
         println!("init memory region {:#x} - {:#x}", start, start + size);
         mm::init_frame_allocator(start, start + size);
     });
-    task::run_first_task();
-    panic!("Unreachable in rust_main!");
+
+    task::add_initproc();
+    println!("after initproc!");
+    loader::list_apps();
+    task::run_tasks();
+    panic!("Unreachable in ch5 rust main!");
 }
 
 pub struct PageAllocImpl;

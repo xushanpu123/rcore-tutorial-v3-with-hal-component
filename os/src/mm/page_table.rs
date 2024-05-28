@@ -1,5 +1,4 @@
 //! Implementation of [`PageTableEntry`] and [`PageTable`].
-
 use _core::{slice, str::from_utf8_unchecked};
 use polyhal::{ pagetable::PageTable};
 use alloc::string::String;
@@ -7,7 +6,6 @@ use bitflags::*;
 use crate::alloc::string::ToString;
 
 bitflags! {
-    /// page table entry flags
     pub struct PTEFlags: u8 {
         const V = 1 << 0;
         const R = 1 << 1;
@@ -20,7 +18,7 @@ bitflags! {
     }
 }
 
-/// translate a pointer to a mutable u8 Vec through page table
+/// doc
 pub fn translated_byte_buffer(_token: PageTable, ptr: *mut u8, len: usize) -> &'static mut [u8] {
     unsafe { core::slice::from_raw_parts_mut(ptr, len) }
 }

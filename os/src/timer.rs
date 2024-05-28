@@ -1,5 +1,3 @@
-//! RISC-V timer-related functionality
-
 use polyhal::time::Time;
 
 const TICKS_PER_SEC: usize = 100;
@@ -13,4 +11,3 @@ pub fn get_time() -> usize {
 pub fn get_time_ms() -> usize {
     Time::now().to_msec() 
 }
-

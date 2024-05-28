@@ -1,15 +1,13 @@
 //! Implementation of [`MapArea`] and [`MemorySet`].
-
+use super::{frame_alloc, FrameTracker};
 use polyhal::pagetable::{MappingFlags, MappingSize, PageTable, PageTableWrapper};
 use polyhal::addr::{PhysPage, VirtAddr, VirtPage};
-
-use super::{frame_alloc, FrameTracker};
 use super::vpn_range::VPNRange;
 use crate::config::{PAGE_SIZE, USER_STACK_SIZE};
 use alloc::collections::BTreeMap;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
-//  use riscv::register::satp;
+// use riscv::register::satp;
 use log::*;
 
 /// memory set structure, controls virtual-memory space
@@ -19,12 +17,14 @@ pub struct MemorySet {
 }
 
 impl MemorySet {
+    ///Create an empty `MemorySet`
     pub fn new_bare() -> Self {
         Self {
             page_table: Arc::new(PageTableWrapper::alloc()),
             areas: Vec::new(),
         }
     }
+    ///Get pagetable `root_ppn`
     pub fn token(&self) -> PageTable {
         self.page_table.0
     }
@@ -40,6 +40,7 @@ impl MemorySet {
             None,
         );
     }
+    ///Remove `MapArea` that starts with `start_vpn`
     pub fn remove_area_with_start_vpn(&mut self, start_vpn: VirtPage) {
         if let Some((idx, area)) = self
             .areas
@@ -145,7 +146,6 @@ impl MemorySet {
         self.areas.clear();
     }
 }
-
 /// map area structure, controls a contiguous piece of virtual memory
 pub struct MapArea {
     vpn_range: VPNRange,
@@ -187,6 +187,8 @@ impl MapArea {
             self.data_frames.insert(vpn, p_tracker);
         }
     }
+
+    /// Unmap page area
     #[allow(unused)]
     pub fn unmap(&mut self, page_table: &Arc<PageTableWrapper>) {
         trace!("os::mm::memory_set::MapArea::unmap");
@@ -194,7 +196,7 @@ impl MapArea {
             page_table.unmap_page(vpn);
         }
     }
-    
+
     /// data: start-aligned but maybe with shorter length
     /// assume that all frames were cleared before
     pub fn copy_data(&mut self, page_table: &Arc<PageTableWrapper>, data: &[u8]) {
@@ -228,9 +230,13 @@ pub enum MapType {
 bitflags! {
     /// map permission corresponding to that in pte: `R W X U`
     pub struct MapPermission: u8 {
+        ///Readable
         const R = 1 << 1;
+        ///Writable
         const W = 1 << 2;
+        ///Excutable
         const X = 1 << 3;
+        ///Accessible in U mode
         const U = 1 << 4;
     }
 }

@@ -1,3 +1,4 @@
+//! The panic handler
 use polyhal::shutdown;
 use core::panic::PanicInfo;
 use log::*;

@@ -1,21 +1,22 @@
 //! Implementation of [`FrameAllocator`] which
 //! controls all the frames in the operating system.
-
 use polyhal::addr::{PhysAddr, PhysPage};
-use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
 
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
 use lazy_static::*;
+use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
 use core::mem::size_of;
 
 /// manage a frame which has the same lifecycle as the tracker
 pub struct FrameTracker {
+    ///
     pub ppn: PhysPage,
 }
 
 impl FrameTracker {
+    ///Create an empty `FrameTracker`
     pub fn new(ppn: PhysPage) -> Self {
         // page cleaning
         ppn.drop_clear();
@@ -40,7 +41,6 @@ trait FrameAllocator {
     fn alloc(&mut self) -> Option<PhysPage>;
     fn dealloc(&mut self, ppn: PhysPage);
 }
-
 /// an implementation for frame allocator
 pub struct StackFrameAllocator {
     current: usize,
@@ -91,7 +91,6 @@ lazy_static! {
     pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
         unsafe { UPSafeCell::new(FrameAllocatorImpl::new()) };
 }
-
 /// initiate the frame allocator using `ekernel` and `MEMORY_END`
 pub fn init_frame_allocator(mm_start: usize, mm_end: usize) {
     extern "C" {
@@ -113,7 +112,6 @@ pub fn init_frame_allocator(mm_start: usize, mm_end: usize) {
         );
     }
 }
-
 /// allocate a frame
 pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
@@ -122,6 +120,7 @@ pub fn frame_alloc() -> Option<FrameTracker> {
         .map(FrameTracker::new)
 }
 
+/// doc
 pub fn frame_alloc_page_with_clear() -> Option<PhysPage> {
     FRAME_ALLOCATOR
         .exclusive_access()
