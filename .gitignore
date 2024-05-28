@@ -15,5 +15,5 @@ tools/
 pushall.sh
 .vscode/*.log
 *.img*
-*log*
+*.log
 /bin
