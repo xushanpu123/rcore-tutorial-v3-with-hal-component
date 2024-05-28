@@ -1,5 +1,0 @@
-{
-    "[rust]": {
-        "rust-analyzer.check.allTargets": false
-    }
-}

@@ -1,21 +1,30 @@
+//! The main module and entrypoint
+//!
+//! Various facilities of the kernels are implemented as submodules. The most
+//! important ones are:
+//!
+//! - [`trap`]: Handles all cases of switching from userspace to the kernel
+//! - [`task`]: Task management
+//! - [`syscall`]: System call handling and implementation
+//! - [`mm`]: Address map using SV39
+//! - [`sync`]:Wrap a static data structure inside it so that we are able to access it without any `unsafe`.
+//!
+//! The operating system also starts in this module. Kernel code starts
+//! executing from `entry.asm`, after which [`rust_main()`] is called to
+//! initialize various pieces of functionality. (See its source code for
+//! details.)
+//!
+//! We then call [`task::run_tasks()`] and for the first time go to
+//! userspace.
+
+//#![deny(warnings)]
 #![no_std]
 #![no_main]
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
-use crate::{
-    syscall::syscall,
-    task::{
-        check_signals_error_of_current, current_add_signal, exit_current_and_run_next,
-        handle_signals, suspend_current_and_run_next, SignalFlags,
-    },
-};
-use polyhal::{get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
-// use polyhal::api::ArchInterface;
-use polyhal::addr::PhysPage;
-use log::warn;
-use polyhal::TrapType::*;
 extern crate alloc;
+extern crate polyhal;
 
 #[macro_use]
 extern crate bitflags;
@@ -23,21 +32,30 @@ extern crate bitflags;
 #[macro_use]
 mod console;
 mod config;
-mod drivers;
-mod fs;
 mod lang_items;
 mod logging;
-mod mm;
-mod sync;
-mod syscall;
-mod task;
+mod timer;
+#[path="boards/qemu.rs"]
+mod board;
+mod loader;
+pub mod mm;
+pub mod sync;
+pub mod syscall;
+pub mod task;
 
-pub struct ArchInterfaceImpl;
+use crate::syscall::syscall;
+use crate::task::{suspend_current_and_run_next, exit_current_and_run_next};
+use polyhal::{get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
+use polyhal::addr::PhysPage;
+use polyhal::TrapType::*;
+use log::*;
 
-/// kernel interrupt
+use core::arch::global_asm;
+
+global_asm!(include_str!("link_app.S"));
+
 #[polyhal::arch_interrupt]
 fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
-    // println!("trap_type @ {:x?} {:#x?}", trap_type, ctx);
     match trap_type {
         Breakpoint => return,
         UserEnvCall => {
@@ -52,58 +70,39 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             ctx[TrapFrameArgs::RET] = result as usize;
         }
         StorePageFault(_paddr) | LoadPageFault(_paddr) | InstructionPageFault(_paddr) => {
-            /*
-            println!(
-                "[kernel] {:?} in application, bad addr = {:#x}, bad instruction = {:#x}, kernel killed it.",
-                scause.cause(),
-                stval,
-                current_trap_cx().sepc,
-            );
-            */
-            current_add_signal(SignalFlags::SIGSEGV);
+            println!("[kernel] PageFault in application, kernel killed it. paddr={:x}",_paddr);
+            exit_current_and_run_next();
         }
         IllegalInstruction(_) => {
-            current_add_signal(SignalFlags::SIGILL);
+            println!("[kernel] IllegalInstruction in application, kernel killed it.");
+            exit_current_and_run_next();
         }
         Time => {
             suspend_current_and_run_next();
         }
         _ => {
-            warn!("unsuspended trap type: {:?}", trap_type);
+            panic!("unsuspended trap type: {:?}", trap_type);
         }
-    }
-    // handle signals (handle the sent signal)
-    // println!("[K] trap_handler:: handle_signals");
-    handle_signals();
-
-    // check error signals (if error then exit)
-    if let Some((errno, msg)) = check_signals_error_of_current() {
-        println!("[kernel] {}", msg);
-        exit_current_and_run_next(errno);
     }
 }
 
 #[polyhal::arch_entry]
-fn main(hartid: usize) {
+pub fn main(hartid: usize){
+    trace!("ch4 main start: hartid: {}", hartid);
     if hartid != 0 {
         return;
     }
     println!("[kernel] Hello, world!");
     mm::init_heap();
-    logging::init(Some("trace"));
-    println!("init logging");
-    polyhal::init_interrupt();
-
+    logging::init(Some("info"));
+    info!("[kernel] init logging success!");
     polyhal::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)| {
         println!("init memory region {:#x} - {:#x}", start, start + size);
         mm::init_frame_allocator(start, start + size);
     });
-
-    fs::list_apps();
-    task::add_initproc();
-    task::run_tasks();
-    panic!("Unreachable in main function of rCore Tutorial kernel!");
+    task::run_first_task();
+    panic!("Unreachable in rust_main!");
 }
 
 pub struct PageAllocImpl;
@@ -111,7 +110,7 @@ pub struct PageAllocImpl;
 impl PageAlloc for PageAllocImpl {
     #[inline]
     fn alloc(&self) -> PhysPage {
-        mm::frame_alloc_persist().expect("can't find memory page")
+        mm::frame_alloc_page_with_clear().expect("failed to alloc page")
     }
 
     #[inline]

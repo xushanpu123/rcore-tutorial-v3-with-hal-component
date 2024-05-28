@@ -3,28 +3,14 @@
 !.vscode/settings.json
 !.devcontainer/devcontainer.json
 
-.idea
-**/Cargo.lock
 **/target/
+**/Cargo.lock
 
 os/src/link_app.S
 os/src/linker.ld
-os/*.log
-os/virt.out
-os/fs-img.img
 os/last-*
-os/Cargo.lock
 os/.gdb_history
-user/build
-user/target/*
-user/.idea/*
-user/Cargo.lock
-easy-fs/Cargo.lock
-easy-fs/target/*
-easy-fs-fuse/Cargo.lock
-easy-fs-fuse/target/*
+os/virt.out
 tools/
 pushall.sh
-
-*log*
-/bin
+.vscode/*.log

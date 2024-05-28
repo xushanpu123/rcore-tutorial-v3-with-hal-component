@@ -7,9 +7,6 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-buddy_system_allocator = "0.6"
-bitflags = "1.2.1"
-riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
 
 [profile.release]
 debug = true

@@ -1,13 +1,16 @@
+//! Implementation of [`FrameAllocator`] which
+//! controls all the frames in the operating system.
+
+use polyhal::addr::{PhysAddr, PhysPage};
+use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
+
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
-use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
-use polyhal::addr::{PhysAddr, PhysPage};
-use core::{
-    fmt::{self, Debug, Formatter},
-    mem::size_of,
-};
+use core::fmt::{self, Debug, Formatter};
 use lazy_static::*;
+use core::mem::size_of;
 
+/// manage a frame which has the same lifecycle as the tracker
 pub struct FrameTracker {
     pub ppn: PhysPage,
 }
@@ -26,10 +29,8 @@ impl Debug for FrameTracker {
     }
 }
 
-use log::*;
 impl Drop for FrameTracker {
     fn drop(&mut self) {
-        trace!("drop frame tracker: {:?}", self.ppn);
         frame_dealloc(self.ppn);
     }
 }
@@ -40,6 +41,7 @@ trait FrameAllocator {
     fn dealloc(&mut self, ppn: PhysPage);
 }
 
+/// an implementation for frame allocator
 pub struct StackFrameAllocator {
     current: usize,
     end: usize,
@@ -85,10 +87,12 @@ impl FrameAllocator for StackFrameAllocator {
 type FrameAllocatorImpl = StackFrameAllocator;
 
 lazy_static! {
+    /// frame allocator instance through lazy_static!
     pub static ref FRAME_ALLOCATOR: UPSafeCell<FrameAllocatorImpl> =
         unsafe { UPSafeCell::new(FrameAllocatorImpl::new()) };
 }
 
+/// initiate the frame allocator using `ekernel` and `MEMORY_END`
 pub fn init_frame_allocator(mm_start: usize, mm_end: usize) {
     extern "C" {
         fn end();
@@ -110,21 +114,41 @@ pub fn init_frame_allocator(mm_start: usize, mm_end: usize) {
     }
 }
 
+/// allocate a frame
 pub fn frame_alloc() -> Option<FrameTracker> {
     FRAME_ALLOCATOR
         .exclusive_access()
         .alloc()
         .map(FrameTracker::new)
-        .inspect(|x| x.ppn.drop_clear())
 }
 
-pub fn frame_alloc_persist() -> Option<PhysPage> {
+pub fn frame_alloc_page_with_clear() -> Option<PhysPage> {
     FRAME_ALLOCATOR
         .exclusive_access()
         .alloc()
         .inspect(|x| x.drop_clear())
 }
 
+/// deallocate a frame
 pub fn frame_dealloc(ppn: PhysPage) {
     FRAME_ALLOCATOR.exclusive_access().dealloc(ppn);
+}
+
+#[allow(unused)]
+/// a simple test for frame allocator
+pub fn frame_allocator_test() {
+    let mut v: Vec<FrameTracker> = Vec::new();
+    for i in 0..5 {
+        let frame = frame_alloc().unwrap();
+        println!("{:?}", frame);
+        v.push(frame);
+    }
+    v.clear();
+    for i in 0..5 {
+        let frame = frame_alloc().unwrap();
+        println!("{:?}", frame);
+        v.push(frame);
+    }
+    drop(v);
+    println!("frame_allocator_test passed!");
 }

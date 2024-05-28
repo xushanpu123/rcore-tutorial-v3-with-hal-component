@@ -1,232 +1,189 @@
-mod action;
-mod manager;
-mod pid;
-mod processor;
-mod signal;
+//! Task management implementation
+//!
+//! Everything about task management, like starting and switching tasks is
+//! implemented here.
+//!
+//! A single global instance of [`TaskManager`] called `TASK_MANAGER` controls
+//! all the tasks in the operating system.
+//!
+//! Be careful when you see `__switch` ASM function in `switch.S`. Control flow around this function
+//! might not be what you expect.
+
+
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::fs::{open_file, OpenFlags};
-use alloc::sync::Arc;
-use polyhal::shutdown;
-use polyhal::KContext;
-use polyhal::TrapFrameArgs;
-use lazy_static::*;
+use crate::loader::{get_num_app,get_app_data};
+use crate::polyhal::shutdown;
+use crate::sync::UPSafeCell;
 use log::info;
-use manager::fetch_task;
-use manager::remove_from_pid2task;
+use alloc::vec::Vec;
+use lazy_static::*;
 use task::{TaskControlBlock, TaskStatus};
+use polyhal::{KContext, TrapFrame};
+use polyhal::{pagetable::PageTable};
+use polyhal::context_switch_pt;
 
-pub use action::{SignalAction, SignalActions};
-pub use manager::{add_task, pid2task};
-pub use pid::{pid_alloc, PidHandle};
-pub use processor::{current_task, current_user_token, run_tasks, schedule, take_current_task};
-pub use signal::{SignalFlags, MAX_SIG};
-
-pub fn suspend_current_and_run_next() {
-    // There must be an application running.
-    let task = take_current_task().unwrap();
-
-    // ---- access current TCB exclusively
-    let mut task_inner = task.inner_exclusive_access();
-    let task_cx_ptr = &mut task_inner.task_cx as *mut KContext;
-    // Change status to Ready
-    task_inner.task_status = TaskStatus::Ready;
-    drop(task_inner);
-    // ---- release current PCB
-
-    // push back to ready queue.
-    add_task(task);
-    // jump to scheduling cycle
-    schedule(task_cx_ptr);
+/// The task manager, where all the tasks are managed.
+///
+/// Functions implemented on `TaskManager` deals with all task state transitions
+/// and task context switching. For convenience, you can find wrappers around it
+/// in the module level.
+///
+/// Most of `TaskManager` are hidden behind the field `inner`, to defer
+/// borrowing checks to runtime. You can see examples on how to use `inner` in
+/// existing functions on `TaskManager`.
+pub struct TaskManager {
+    /// total number of tasks
+    num_app: usize,
+    /// use inner value to get mutable access
+    inner: UPSafeCell<TaskManagerInner>,
 }
 
-/// pid of usertests app in make run TEST=1
-pub const IDLE_PID: usize = 0;
-
-/// Exit the current 'Running' task and run the next task in task list.
-pub fn exit_current_and_run_next(exit_code: i32) {
-    // take from Processor
-    let task = take_current_task().unwrap();
-
-    let pid = task.getpid();
-    if pid == IDLE_PID {
-        println!(
-            "[kernel] Idle process exit with exit_code {} ...",
-            exit_code
-        );
-        shutdown();
-    }
-
-    // remove from pid2task
-    remove_from_pid2task(task.getpid());
-    // **** access current TCB exclusively
-    let mut inner = task.inner_exclusive_access();
-    // Change status to Zombie
-    inner.task_status = TaskStatus::Zombie;
-    // Record exit code
-    inner.exit_code = exit_code;
-    // do not move to its parent but under initproc
-
-    // ++++++ access initproc TCB exclusively
-    {
-        let mut initproc_inner = INITPROC.inner_exclusive_access();
-        for child in inner.children.iter() {
-            child.inner_exclusive_access().parent = Some(Arc::downgrade(&INITPROC));
-            initproc_inner.children.push(child.clone());
-        }
-    }
-    // ++++++ release parent PCB
-
-    inner.children.clear();
-    // deallocate user space
-    inner.memory_set.recycle_data_pages();
-    // drop file descriptors
-    inner.fd_table.clear();
-    drop(inner);
-    // **** release current PCB
-    // drop task manually to maintain rc correctly
-    drop(task);
-    // we do not have to save task context
-    let mut _unused = KContext::blank();
-    schedule(&mut _unused as *mut _);
+/// Inner of Task Manager
+pub struct TaskManagerInner {
+    /// task list
+    tasks: Vec<TaskControlBlock>,
+    /// id of current `Running` task
+    current_task: usize,
 }
 
 lazy_static! {
-    pub static ref INITPROC: Arc<TaskControlBlock> = Arc::new({
-        let inode = open_file("initproc", OpenFlags::RDONLY).unwrap();
-        let v = inode.read_all();
-        TaskControlBlock::new(v.as_slice())
-    });
-}
-
-pub fn add_initproc() {
-    add_task(INITPROC.clone());
-}
-
-pub fn check_signals_error_of_current() -> Option<(i32, &'static str)> {
-    let task = current_task().unwrap();
-    let task_inner = task.inner_exclusive_access();
-    // println!(
-    //     "[K] check_signals_error_of_current {:?}",
-    //     task_inner.signals
-    // );
-    task_inner.signals.check_error()
-}
-
-pub fn current_add_signal(signal: SignalFlags) {
-    let task = current_task().unwrap();
-    let mut task_inner = task.inner_exclusive_access();
-    task_inner.signals |= signal;
-    // println!(
-    //     "[K] current_add_signal:: current task sigflag {:?}",
-    //     task_inner.signals
-    // );
-}
-
-fn call_kernel_signal_handler(signal: SignalFlags) {
-    let task = current_task().unwrap();
-    let mut task_inner = task.inner_exclusive_access();
-    match signal {
-        SignalFlags::SIGSTOP => {
-            task_inner.frozen = true;
-            task_inner.signals ^= SignalFlags::SIGSTOP;
+    /// Global variable: TASK_MANAGER
+    pub static ref TASK_MANAGER: TaskManager = {
+        let num_app = get_num_app();
+        let mut kcx = KContext::blank();
+        let mut tasks = Vec::new();
+        for i in 0..num_app{
+            tasks.push(TaskControlBlock::new(get_app_data(i)));}
+        TaskManager {
+            num_app,
+            inner: unsafe {
+                UPSafeCell::new(TaskManagerInner {
+                    tasks,
+                    current_task: 0,
+                })
+            },
         }
-        SignalFlags::SIGCONT => {
-            if task_inner.signals.contains(SignalFlags::SIGCONT) {
-                task_inner.signals ^= SignalFlags::SIGCONT;
-                task_inner.frozen = false;
+    };
+}
+
+
+impl TaskManager {
+    /// Run the first task in task list.
+    ///
+    /// Generally, the first task in task list is an idle task (we call it zero process later).
+    /// But in ch3, we load apps statically, so the first task is a real app.
+    fn run_first_task(&self) -> ! {
+        let mut inner = self.inner.exclusive_access();
+        let task0 = &mut inner.tasks[0];
+        task0.task_status = TaskStatus::Running;
+        let next_task_cx_ptr = &task0.task_cx as *const KContext;
+        let token = task0.memory_set.token();
+        drop(inner);
+        let mut _unused = KContext::blank();
+        // before this, we should drop local variables that must be dropped manually
+        info!("context_switch before!");
+        unsafe {
+            context_switch_pt(&mut _unused as *mut KContext, next_task_cx_ptr, token);
+        }
+        info!("context_switch after!");
+        panic!("unreachable in run_first_task!");
+    }
+
+    /// Change the status of current `Running` task into `Ready`.
+    fn mark_current_suspended(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].task_status = TaskStatus::Ready;
+    }
+
+    /// Change the status of current `Running` task into `Exited`.
+    fn mark_current_exited(&self) {
+        let mut inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        inner.tasks[current].task_status = TaskStatus::Exited;
+    }
+
+    /// Find next task to run and return task id.
+    ///
+    /// In this case, we only return the first `Ready` task in task list.
+    fn find_next_task(&self) -> Option<usize> {
+        let inner = self.inner.exclusive_access();
+        let current = inner.current_task;
+        (current + 1..current + self.num_app + 1)
+            .map(|id| id % self.num_app)
+            .find(|id| inner.tasks[*id].task_status == TaskStatus::Ready)
+    }
+
+    /// Switch current `Running` task to the task we have found,
+    /// or there is no `Ready` task and we can exit with all applications completed
+    fn run_next_task(&self) {
+        if let Some(next) = self.find_next_task() {
+            let mut inner = self.inner.exclusive_access();
+            let current = inner.current_task;
+            inner.tasks[next].task_status = TaskStatus::Running;
+            inner.current_task = next;
+            let current_task_cx_ptr = &mut inner.tasks[current].task_cx as *mut KContext;
+            let next_task_cx_ptr = &inner.tasks[next].task_cx as *const KContext;
+            let token = inner.tasks[next].memory_set.token();
+            drop(inner);
+            // before this, we should drop local variables that must be dropped manually
+            unsafe {
+                context_switch_pt(current_task_cx_ptr, next_task_cx_ptr, token);
             }
+            // go back to user mode
+        } else {
+            println!("All applications completed!");
+            shutdown();
         }
-        _ => {
-            // println!(
-            //     "[K] call_kernel_signal_handler:: current task sigflag {:?}",
-            //     task_inner.signals
-            // );
-            task_inner.killed = true;
-        }
+    }
+    fn current_task(&self)->usize{
+        self.inner.exclusive_access().current_task
     }
 }
 
-fn call_user_signal_handler(sig: usize, signal: SignalFlags) {
-    let task = current_task().unwrap();
-    let mut task_inner = task.inner_exclusive_access();
-
-    let handler = task_inner.signal_actions.table[sig].handler;
-    if handler != 0 {
-        // user handler
-
-        // handle flag
-        task_inner.handling_sig = sig as isize;
-        task_inner.signals ^= signal;
-
-        // backup trapframe
-        let trap_ctx = task_inner.get_trap_cx();
-        task_inner.trap_ctx_backup = Some(trap_ctx.clone());
-
-        // modify trapframe
-        trap_ctx[TrapFrameArgs::SEPC] = handler;
-
-        // put args (a0)
-        trap_ctx[TrapFrameArgs::ARG0] = sig;
-    } else {
-        info!("task id: {}", task.getpid());
-        info!("{:#x?}", task_inner.get_trap_cx());
-        // default action
-        println!("[K] task/call_user_signal_handler: default action: ignore it or kill process");
-    }
+/// run first task
+pub fn run_first_task() {
+    println!("123");
+    TASK_MANAGER.run_first_task();
 }
 
-fn check_pending_signals() {
-    for sig in 0..(MAX_SIG + 1) {
-        let task = current_task().unwrap();
-        let task_inner = task.inner_exclusive_access();
-        let signal = SignalFlags::from_bits(1 << sig).unwrap();
-        if task_inner.signals.contains(signal) && (!task_inner.signal_mask.contains(signal)) {
-            let mut masked = true;
-            let handling_sig = task_inner.handling_sig;
-            if handling_sig == -1 {
-                masked = false;
-            } else {
-                let handling_sig = handling_sig as usize;
-                if !task_inner.signal_actions.table[handling_sig]
-                    .mask
-                    .contains(signal)
-                {
-                    masked = false;
-                }
-            }
-            if !masked {
-                drop(task_inner);
-                drop(task);
-                if signal == SignalFlags::SIGKILL
-                    || signal == SignalFlags::SIGSTOP
-                    || signal == SignalFlags::SIGCONT
-                    || signal == SignalFlags::SIGDEF
-                {
-                    // signal is a kernel signal
-                    call_kernel_signal_handler(signal);
-                } else {
-                    // signal is a user signal
-                    call_user_signal_handler(sig, signal);
-                    return;
-                }
-            }
-        }
-    }
+/// rust next task
+fn run_next_task() {
+    TASK_MANAGER.run_next_task();
 }
 
-pub fn handle_signals() {
-    loop {
-        check_pending_signals();
-        let (frozen, killed) = {
-            let task = current_task().unwrap();
-            let task_inner = task.inner_exclusive_access();
-            (task_inner.frozen, task_inner.killed)
-        };
-        if !frozen || killed {
-            break;
-        }
-        suspend_current_and_run_next();
-    }
+/// suspend current task
+fn mark_current_suspended() {
+    TASK_MANAGER.mark_current_suspended();
+}
+
+/// exit current task
+fn mark_current_exited() {
+    TASK_MANAGER.mark_current_exited();
+}
+
+/// suspend current task, then run next task
+pub fn suspend_current_and_run_next() {
+    mark_current_suspended();
+    run_next_task();
+}
+
+/// exit current task,  then run next task
+pub fn exit_current_and_run_next() {
+    mark_current_exited();
+    run_next_task();
+}
+
+pub fn current_task_tcb() -> *mut TrapFrame {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let ret = inner.tasks[inner.current_task].get_trap_cx() as *mut TrapFrame;
+    ret
+}
+
+pub fn current_user_token() -> PageTable {
+    let mut inner = TASK_MANAGER.inner.exclusive_access();
+    let ret = inner.tasks[inner.current_task].get_user_token();
+    ret
 }
