@@ -49,20 +49,27 @@ jobs:
           qemu-system-x86_64 --version
 
       - name: Run usertests in RISC-V
-        run: cd os && make run TEST=1
+        run: cd os && make run
         timeout-minutes: 10
       
       - name: Run usertests in AArch64
-        run: cd os && make run TEST=1 ARCH=aarch64
+        run: cd os && make run ARCH=aarch64
         timeout-minutes: 10
 
       - name: Run usertests in x86_64
-        run: cd os && make run TEST=1 ARCH=x86_64
+        run: cd os && make run ARCH=x86_64
         timeout-minutes: 10
       
-      # - name: Run usertests in LoongArch64
-      #   run: |
-      #     trap 'exit 0' SIGTERM
-      #     cd os && make run TEST=1 ARCH=loongarch64
-      #   timeout-minutes: 2
-
+      - name: Run usertests in loongarch64
+        run: |
+            cd os
+            (make run ARCH=loongarch64 & echo $! > pidfile) | while IFS= read -r line
+            do
+              echo "$line"
+              if echo "$line" | grep -q "DONE"
+              then
+                kill $(cat pidfile)
+                wait $(cat pidfile)
+                exit 0
+              fi
+            done
