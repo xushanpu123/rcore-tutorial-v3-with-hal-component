@@ -59,6 +59,9 @@ DISASM ?= -x
 # Run usertests or usershell
 TEST ?=
 
+pre_update:
+	cargo update
+
 build: env fs-img $(KERNEL_BIN) 
 
 env:

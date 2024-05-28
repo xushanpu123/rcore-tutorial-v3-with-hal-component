@@ -1,0 +1,93 @@
+name: test-run
+
+
+env:
+  MAIN_REPO: sysones/rcore-tutorial-v3-with-hal-component
+  BRANCH: ch7
+on: 
+  push:
+  workflow_call:
+    inputs:
+      TopTestDirectory:
+        description: 'The directory where the main repository will be placed'
+        required: true
+        type: string
+      CallerPackage:
+        description: 'The package to call the workflow'
+        required: true
+        type: string
+      CallerRepository:
+        description: 'The repository to call the workflow'
+        required: true
+        type: string
+      CallerCommit:
+        description: 'The commit of the repository to call the workflow'
+        required: true
+        type: string
+
+jobs:
+  prepare_for_external_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: step1
+        if: github.repository != env.MAIN_REPO 
+        # 输出的值可以在后续的job中使用
+        run: echo "TopTestDirectory=${{ inputs.TopTestDirectory }}" >> $GITHUB_OUTPUT
+      - id: step2
+        if: github.repository == env.MAIN_REPO 
+        run: |
+          echo "TopTestDirectory=." >> $GITHUB_OUTPUT
+    outputs:
+      TopTestDirectory: ${{ steps.step1.outputs.TopTestDirectory || steps.step2.outputs.TopTestDirectory }}
+      
+  test:
+    needs: prepare_for_external_test
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x86_64, aarch64, riscv64, loongarch64]
+        include:
+          - arch: aarch64
+            packages: qemu-system-aarch64
+          - arch: riscv64
+            packages: qemu-system-riscv
+          - arch: x86_64
+            packages: qemu-system-x86
+          - arch: loongarch64
+            packages: qemu-system-loongarch64
+    env:
+      WORKING_DIRECTORY: ${{ needs.prepare_for_external_test.outputs.TopTestDirectory }} 
+    
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install generaic tools
+      run: yes | pacman -Syy make cmake rustup gcc git openssh ${{ matrix.packages }}
+    - name: setup rust toolchain
+      run: rustup default nightly && cargo install cargo-binutils && cargo install kbuild
+    - name: setup environment
+      # run: echo "~/.cargo/bin" >> $GITHUB_PATH
+      run: export PATH=$PATH:"~/.cargo/bin"
+    - name: Clone Top Repository
+      if: github.repository != env.MAIN_REPO
+      run: |
+        git clone https://github.com/${{env.MAIN_REPO}}.git ${{ env.WORKING_DIRECTORY }}
+        cd ${{ env.WORKING_DIRECTORY }}
+        git checkout ${{ env.BRANCH }}
+    - name: Update Top Repository
+      working-directory: ${{ env.WORKING_DIRECTORY }}
+      run: cd os && PATH=$PATH:~/.cargo/bin make pre_update
+    - name: Patch for caller repository
+      if: github.repository != env.MAIN_REPO
+      run: sh ${{ env.WORKING_DIRECTORY }}/tools/external_test.sh ${{ env.WORKING_DIRECTORY }} ${{ inputs.CallerPackage }} ${{ inputs.CallerRepository }} ${{ inputs.CallerCommit }}
+    - name: Test ${{ matrix.arch }}
+      working-directory: ${{ env.WORKING_DIRECTORY }}
+      run: cd os && (PATH=$PATH:~/.cargo/bin timeout 240 make ARCH=${{ matrix.arch }} run TEST=1 2>&1 | tee output.log) || echo "qemu exited！"
+      timeout-minutes: 6
+    - name: check Testing output log
+      working-directory: ${{ env.WORKING_DIRECTORY }}
+      run: grep "Usertests passed!" os/output.log
+
