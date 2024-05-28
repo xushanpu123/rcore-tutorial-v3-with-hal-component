@@ -10,18 +10,10 @@ edition = "2021"
 bitflags = "1.2.1"
 buddy_system_allocator = "0.6"
 log = "0.4"
-
-[dependencies.lazy_static]
-features = ["spin_no_std"]
-version = "1.4.0"
-
-[dependencies.polyhal]
-features = ["kcontext"]
-git = "https://github.com/Byte-OS/polyhal.git"
-
-[dependencies.riscv]
-features = ["inline-asm"]
-git = "https://github.com/rcore-os/riscv"
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+polyhal = { git = "https://github.com/Huzhiwen1208/polyhal.git", branch = "feature/libos-sup", features = [
+    "kcontext",
+] }
 
 [profile.release]
 debug = true
