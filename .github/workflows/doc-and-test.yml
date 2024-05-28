@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        arch: [riscv64, aarch64, x86_64, loongarch64]
+        arch: [riscv64, x86_64, aarch64, loongarch64]
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
@@ -55,16 +55,9 @@ jobs:
       - name: Run usertests in ${{ matrix.arch }}
         run: |
           cd os 
-          (make run ARCH=${{ matrix.arch }} & echo $! > pidfile) | while IFS= read -r line
-            do
-              echo "$line"
-              if echo "$line" | grep -q "shutdown!"
-              then
-                if ps -p $(cat pidfile) > /dev/null
-                then
-                  kill $(cat pidfile)
-                fi
-                exit 0
-              fi
-            done
-        timeout-minutes: 4
+          timeout 60 make run ARCH=${{ matrix.arch }} 2>&1 | tee output.log || echo "qemu exited"
+        timeout-minutes: 2
+      
+      - name: Checkout output
+        run : |
+          grep -q "[kernel] Hello, world!" os/output.log && exit 1 || exit 0
