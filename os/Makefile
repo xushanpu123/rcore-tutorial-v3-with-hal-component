@@ -18,8 +18,11 @@ else ifeq ($(ARCH), riscv64)
 				-kernel $(KERNEL_BIN)
 else ifeq ($(ARCH), aarch64)
   TARGET := aarch64-unknown-none-softfloat
-  QEMU_EXEC += qemu-system-$(AR	-serial mon:stdio \ -kernel $(KERNEL_ELF)
-  BUS := pci
+  QEMU_EXEC += qemu-system-$(ARCH) \
+				-cpu cortex-a72 \
+				-machine virt \
+				-device virtio-blk-device,drive=x0 \
+				-kernel $(KERNEL_BIN)
 else
   $(error "ARCH" must be one of "x86_64", "riscv64", "aarch64" or "loongarch64")
 endif
@@ -86,15 +89,18 @@ run: run-inner
 ifeq ($(ARCH), riscv64)
 QEMU_EXEC += -drive file=$(FS_IMG),if=none,format=raw,id=x0
 endif
+# ifeq ($(ARCH), aarch64)
+# QEMU_EXEC += -drive file=$(FS_IMG),if=none,format=raw,id=x0
+# endif
 QEMU_EXEC += -smp 1 \
 			 -D qemu.log -d in_asm,int,pcall,cpu_reset,guest_errors \
 			 $(GUI_OPTION) \
-			 -device virtio-keyboard-pci \
-			 -device virtio-mouse-pci \
-			#  -serial stdio \
-			#  -device virtio-gpu-device \
-			#  -device virtio-net-device,netdev=net0 \
-			#  -netdev user,id=net0,hostfwd=udp::6200-:2000,hostfwd=tcp::6201-:80
+			 -device virtio-keyboard-device \
+			 -device virtio-mouse-device \
+			 -serial stdio \
+			 -device virtio-gpu-device \
+			 -device virtio-net-device,netdev=net0 \
+			 -netdev user,id=net0,hostfwd=udp::6200-:2000,hostfwd=tcp::6201-:80
 
 
 fdt:

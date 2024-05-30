@@ -172,16 +172,17 @@ impl<const BASE_ADDR: usize> CharDevice for NS16550a<BASE_ADDR> {
         let mut inner = self.inner.exclusive_access();
         inner.ns16550a.write(ch);
     }
-    fn handle_irq(&self) {
-        let mut count = 0;
-        self.inner.exclusive_session(|inner| {
-            while let Some(ch) = inner.ns16550a.read() {
-                count += 1;
-                inner.read_buffer.push_back(ch);
-            }
-        });
-        if count > 0 {
-            self.condvar.signal();
-        }
-    }
+    // TODO: use handle irq
+    // fn handle_irq(&self) {
+    //     let mut count = 0;
+    //     self.inner.exclusive_session(|inner| {
+    //         while let Some(ch) = inner.ns16550a.read() {
+    //             count += 1;
+    //             inner.read_buffer.push_back(ch);
+    //         }
+    //     });
+    //     if count > 0 {
+    //         self.condvar.signal();
+    //     }
+    // }
 }

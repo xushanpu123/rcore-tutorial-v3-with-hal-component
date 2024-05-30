@@ -87,7 +87,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
                 5 => KEYBOARD_DEVICE.handle_irq(),
                 6 => MOUSE_DEVICE.handle_irq(),
                 8 => BLOCK_DEVICE.handle_irq(),
-                10 => UART.handle_irq(),
+                // 10 => UART.handle_irq(),
                 _ => panic!("unsupported IRQ {}", intr_src_id),
 
             }

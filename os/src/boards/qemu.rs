@@ -12,6 +12,7 @@ pub type BlockDeviceImpl = crate::drivers::block::VirtIOBlock;
 
 
 pub type CharDeviceImpl = crate::drivers::chardev::NS16550a<VIRT_UART>;
+// pub type CharDeviceImpl = crate::drivers::chardev::PolyInput;
 
 pub const VIRT_PLIC: usize = 0xC00_0000 + 0xffff_ffc0_0000_0000;
 pub const VIRT_UART: usize = 0x1000_0000 + 0xffff_ffc0_0000_0000;
@@ -26,7 +27,7 @@ use crate::drivers::plic::{IntrTargetPriority, PLIC};
 use crate::drivers::{KEYBOARD_DEVICE, MOUSE_DEVICE};
 
 pub fn device_init() {
-    use riscv::register::sie;
+    // use riscv::register::sie;
     let mut plic = unsafe { PLIC::new(VIRT_PLIC) };
     let hart_id: usize = 0;
     let supervisor = IntrTargetPriority::Supervisor;
@@ -38,9 +39,9 @@ pub fn device_init() {
         plic.enable(hart_id, supervisor, intr_src_id);
         plic.set_priority(intr_src_id, 1);
     }
-    unsafe {
-        sie::set_sext();
-    }
+    // unsafe {
+    //     sie::set_sext();
+    // }
 }
 
 pub fn irq_handler() {
@@ -50,7 +51,7 @@ pub fn irq_handler() {
         5 => KEYBOARD_DEVICE.handle_irq(),
         6 => MOUSE_DEVICE.handle_irq(),
         8 => BLOCK_DEVICE.handle_irq(),
-        10 => UART.handle_irq(),
+        // 10 => UART.handle_irq(),
         _ => panic!("unsupported IRQ {}", intr_src_id),
     }
     plic.complete(0, IntrTargetPriority::Supervisor, intr_src_id);

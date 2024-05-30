@@ -1,22 +1,21 @@
 use core::cmp::Ordering;
 
-use crate::config::CLOCK_FREQ;
 use crate::sync::UPIntrFreeCell;
 use crate::task::{wakeup_task, TaskControlBlock};
 use alloc::collections::BinaryHeap;
 use alloc::sync::Arc;
 use lazy_static::*;
-use riscv::register::time;
+use polyhal::time::Time;
 
 const TICKS_PER_SEC: usize = 100;
 const MSEC_PER_SEC: usize = 1000;
 
 pub fn get_time() -> usize {
-    time::read()
+    Time::now().raw()
 }
 
 pub fn get_time_ms() -> usize {
-    time::read() / (CLOCK_FREQ / MSEC_PER_SEC)
+    Time::now().to_msec()
 }
 
 pub struct TimerCondVar {
