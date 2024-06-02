@@ -3,14 +3,17 @@ use crate::sync::{Condvar, UPIntrFreeCell};
 use crate::task::schedule;
 use alloc::collections::VecDeque;
 use alloc::sync::Arc;
+use polyhal::VIRT_ADDR_START;
+use virtio_drivers::device::input::VirtIOInput;
+use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
 use core::any::Any;
-use virtio_drivers::{VirtIOHeader, VirtIOInput};
+use core::ptr::NonNull;
 
-const VIRTIO5: usize = 0x10005000 + 0xffff_ffc0_0000_0000;
-const VIRTIO6: usize = 0x10006000 + 0xffff_ffc0_0000_0000;
+const VIRTIO5: usize = 0x10005000 + VIRT_ADDR_START;
+const VIRTIO6: usize = 0x10006000 + VIRT_ADDR_START;
 
 struct VirtIOInputInner {
-    virtio_input: VirtIOInput<'static, VirtioHal>,
+    virtio_input: VirtIOInput<VirtioHal, MmioTransport>,
     events: VecDeque<u64>,
 }
 
@@ -34,7 +37,11 @@ impl VirtIOInputWrapper {
     pub fn new(addr: usize) -> Self {
         let inner = VirtIOInputInner {
             virtio_input: unsafe {
-                VirtIOInput::<VirtioHal>::new(&mut *(addr as *mut VirtIOHeader)).unwrap()
+                VirtIOInput::<VirtioHal, MmioTransport>::new(
+                    MmioTransport::new(NonNull::new_unchecked(
+                        addr as *mut VirtIOHeader,
+                    )).unwrap()
+                ).unwrap()
             },
             events: VecDeque::new(),
         };

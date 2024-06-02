@@ -17,6 +17,7 @@ use process::ProcessControlBlock;
 
 pub use id::{pid_alloc, KernelStack, PidHandle, IDLE_PID};
 pub use manager::{add_task, pid2process, remove_from_pid2process, wakeup_task};
+use processor::PROCESSOR;
 pub use processor::{
     current_kstack_top, current_process, current_task, current_trap_cx,
     run_tasks, schedule, take_current_task,
@@ -27,6 +28,10 @@ pub use task::{TaskControlBlock, TaskStatus};
 pub fn suspend_current_and_run_next() {
     // There must be an application running.
     let task = take_current_task().unwrap();
+
+    if !PROCESSOR.exclusive_access().idle_ready() {
+        return;
+    }
 
     // ---- access current TCB exclusively
     let mut task_inner = task.inner_exclusive_access();
@@ -166,6 +171,9 @@ pub fn add_initproc() {
 }
 
 pub fn check_signals_of_current() -> Option<(i32, &'static str)> {
+    if current_task().is_none() {
+        return None;
+    }
     let process = current_process();
     let process_inner = process.inner_exclusive_access();
     process_inner.signals.check_error()

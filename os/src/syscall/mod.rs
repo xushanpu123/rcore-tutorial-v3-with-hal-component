@@ -49,7 +49,10 @@ use process::*;
 use sync::*;
 use thread::*;
 
+use crate::task::current_process;
+
 pub fn syscall(syscall_id: usize, args: [usize; 3]) -> isize {
+    // log::info!("syscall id: {}", syscall_id);
     match syscall_id {
         SYSCALL_DUP => sys_dup(args[0]),
         SYSCALL_CONNECT => sys_connect(args[0] as _, args[1] as _, args[2] as _),

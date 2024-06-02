@@ -3,26 +3,36 @@ ARCH := riscv64
 ifeq ($(ARCH), x86_64)
   TARGET := x86_64-unknown-none
   QEMU_EXEC += qemu-system-x86_64 \
-				-serial mon:stdio \
 				-machine q35 \
+				-device virtio-blk-pci,drive=x0 \
 				-kernel $(KERNEL_ELF) \
 				-cpu IvyBridge-v2 \
 				-device virtio-gpu-pci -vga none \
-				-device virtio-net-pci,netdev=net0 -netdev user,id=net0,hostfwd=tcp::5555-:5555
+				-device virtio-net-pci,netdev=net0 \
+				-device virtio-keyboard-pci \
+				-device virtio-mouse-pci 
   BUS := pci
 else ifeq ($(ARCH), riscv64)
   TARGET := riscv64gc-unknown-none-elf
   QEMU_EXEC += qemu-system-$(ARCH) \
 				-machine virt \
 				-device virtio-blk-device,drive=x0, \
-				-kernel $(KERNEL_BIN)
+				-kernel $(KERNEL_BIN) \
+				-device virtio-gpu-device \
+				-device virtio-net-device,netdev=net0 \
+				-device virtio-keyboard-device \
+				-device virtio-mouse-device 
 else ifeq ($(ARCH), aarch64)
   TARGET := aarch64-unknown-none-softfloat
   QEMU_EXEC += qemu-system-$(ARCH) \
 				-cpu cortex-a72 \
 				-machine virt \
 				-device virtio-blk-device,drive=x0 \
-				-kernel $(KERNEL_BIN)
+				-kernel $(KERNEL_BIN) \
+				-device virtio-gpu-device \
+				-device virtio-net-device,netdev=net0 \
+				-device virtio-keyboard-device \
+				-device virtio-mouse-device 
 else
   $(error "ARCH" must be one of "x86_64", "riscv64", "aarch64" or "loongarch64")
 endif
@@ -32,6 +42,7 @@ KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
 FS_IMG := ../user/target/$(TARGET)/$(MODE)/fs.img
 APPS := ../user/src/bin/*
+LOG := debug
 
 # BOARD
 BOARD := qemu
@@ -79,27 +90,18 @@ $(APPS):
 
 kernel:
 	@echo Platform: $(BOARD)
-	@cargo build -Z build-std --release --target $(TARGET)
+	@LOG=$(LOG) cargo build -Z build-std --release --target $(TARGET)
 
 clean:
 	@cargo clean
 
 run: run-inner
 
-ifeq ($(ARCH), riscv64)
 QEMU_EXEC += -drive file=$(FS_IMG),if=none,format=raw,id=x0
-endif
-# ifeq ($(ARCH), aarch64)
-# QEMU_EXEC += -drive file=$(FS_IMG),if=none,format=raw,id=x0
-# endif
 QEMU_EXEC += -smp 1 \
 			 -D qemu.log -d in_asm,int,pcall,cpu_reset,guest_errors \
 			 $(GUI_OPTION) \
-			 -device virtio-keyboard-device \
-			 -device virtio-mouse-device \
 			 -serial stdio \
-			 -device virtio-gpu-device \
-			 -device virtio-net-device,netdev=net0 \
 			 -netdev user,id=net0,hostfwd=udp::6200-:2000,hostfwd=tcp::6201-:80
 
 
@@ -108,6 +110,9 @@ fdt:
 	fdtdump virt.out
 
 run-inner: build
+	$(QEMU_EXEC)
+
+just-run: env $(KERNEL_BIN)
 	$(QEMU_EXEC)
 
 debug: build

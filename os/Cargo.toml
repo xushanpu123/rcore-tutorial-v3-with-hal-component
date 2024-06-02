@@ -1,28 +1,42 @@
+[dependencies]
+bitflags = "1.2.1"
+buddy_system_allocator = "0.6"
+embedded-graphics = "0.7.1"
+log = "0.4"
+tinybmp = "0.3.1"
+volatile = "0.3"
+xmas-elf = "0.7.0"
+
+[dependencies.easy-fs]
+path = "../easy-fs"
+
+[dependencies.lazy_static]
+features = ["spin_no_std"]
+version = "1.4.0"
+
+[dependencies.lose-net-stack]
+git = "https://github.com/yfblock/lose-net-stack"
+rev = "db42380"
+
+[dependencies.polyhal]
+features = ["kcontext"]
+git = "https://github.com/Byte-OS/polyhal.git"
+
+[dependencies.virtio-drivers]
+git = "https://github.com/rcore-os/virtio-drivers"
+rev = "3a9a69c"
+
 [package]
-name = "os"
-version = "0.1.0"
 authors = ["Yifan Wu <shinbokuow@163.com>"]
 edition = "2021"
+name = "os"
+version = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[patch."https://github.com/Byte-OS/arm_gic".arm_gic]
+path = "crates/arm_gic"
 
-[dependencies]
-#riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
-lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
-buddy_system_allocator = "0.6"
-bitflags = "1.2.1"
-xmas-elf = "0.7.0"
-volatile = "0.3"
-virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "4ee80e5" }
-# virtio-drivers = { path="/home/jackhu/.cargo/git/checkouts/virtio-drivers-4fdfaa862bcdc399/4ee80e5" }
-lose-net-stack = { git = "https://github.com/yfblock/lose-net-stack", rev = "db42380" }
-easy-fs = { path = "../easy-fs" }
-embedded-graphics = "0.7.1"
-tinybmp = "0.3.1"
-log = "0.4"
-# sbi-rt = { version = "0.0.2", features = ["legacy"] }
-polyhal = { git = "https://github.com/Byte-OS/polyhal.git", features = ["kcontext"]}
-
+[patch."https://github.com/Byte-OS/polyhal.git".polyhal]
+path = "crates/polyhal"
 
 [profile.release]
 debug = true

@@ -30,17 +30,19 @@ use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
 
 use lazy_static::*;
+use polyhal::debug::DebugConsole;
+use polyhal::irq::IRQ;
 use sync::UPIntrFreeCell;
 use crate::{syscall::syscall, task::check_signals_of_current};
 use crate::task::{current_process, exit_current_and_run_next};
-use polyhal::{debug, TrapType::*};
+use polyhal::{debug, enable_irq, TrapType::*};
 use log::*;
 use polyhal::{addr::PhysPage, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType, get_cpu_num, get_fdt};
-use task::{current_add_signal, suspend_current_and_run_next, SignalFlags};
+use task::{current_add_signal, current_task, suspend_current_and_run_next, SignalFlags};
 
 use crate::drivers::block::BLOCK_DEVICE;
+#[cfg(target_arch = "riscv64")]
 use crate::drivers::plic::{IntrTargetPriority, PLIC};
-use board::VIRT_PLIC;
 
 lazy_static! {
     pub static ref DEV_NON_BLOCKING_ACCESS: UPIntrFreeCell<bool> =
@@ -74,24 +76,48 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             current_add_signal(SignalFlags::SIGSEGV);
         }
         IllegalInstruction(_) => {
+            log::error!("Illegal instruction");
             current_add_signal(SignalFlags::SIGILL);
         }
         Time => {
+            if current_task().is_none() || !ctx.from_user() {
+                return;
+            }
             suspend_current_and_run_next();
         }
-        SupervisorExternal => {
-            let mut plic: PLIC = unsafe { PLIC::new(VIRT_PLIC) };
-            let intr_src_id = plic.claim(0, IntrTargetPriority::Supervisor);
-            log::trace!("entry SupervisorExternal, intr_src_id: {}", intr_src_id);
-            match intr_src_id {
-                5 => KEYBOARD_DEVICE.handle_irq(),
-                6 => MOUSE_DEVICE.handle_irq(),
-                8 => BLOCK_DEVICE.handle_irq(),
-                // 10 => UART.handle_irq(),
-                _ => panic!("unsupported IRQ {}", intr_src_id),
-
+        Irq(irq) => {
+            #[cfg(target_arch = "aarch64")]
+            {
+                match irq.irq_num() {
+                    0x4f => BLOCK_DEVICE.handle_irq(),
+                    // aarch64 uart interrupt
+                    // 0x21 => {
+                    //     // let key = DebugConsole::getchar().unwrap();
+                    //     // log::info!("input key: {}", key);
+                    //     irq.ack();
+                    // }
+                    _ => panic!("unsupported IRQ {}", irq.irq_num()),
+                }
             }
-            plic.complete(0, IntrTargetPriority::Supervisor, intr_src_id);
+            irq.ack();
+        }
+        SupervisorExternal => {
+            #[cfg(target_arch = "riscv64")]
+            {
+                use board::VIRT_PLIC;
+                let mut plic: PLIC = unsafe { PLIC::new(VIRT_PLIC) };
+                let intr_src_id = plic.claim(0, IntrTargetPriority::Supervisor);
+                log::trace!("entry SupervisorExternal, intr_src_id: {}", intr_src_id);
+                match intr_src_id {
+                    5 => KEYBOARD_DEVICE.handle_irq(),
+                    6 => MOUSE_DEVICE.handle_irq(),
+                    8 => BLOCK_DEVICE.handle_irq(),
+                    // 10 => UART.handle_irq(),
+                    _ => panic!("unsupported IRQ {}", intr_src_id),
+
+                }
+                plic.complete(0, IntrTargetPriority::Supervisor, intr_src_id);
+            }
         }
         _ => {
             warn!("unsuspended trap type: {:?}", trap_type);
@@ -107,23 +133,28 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
 #[polyhal::arch_entry]
 pub fn rust_main(_hartid: usize) -> ! {
     mm::init();
-    logging::init(Some("debug"));
+    logging::init(option_env!("LOG"));
     polyhal::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)|{
         mm::init_frame_allocator(start, start+size);
     });
     UART.init();
+    IRQ::int_disable();
     println!("KERN: init plic");
-     println!("KERN: init gpu");
-    let _gpu = GPU_DEVICE.clone();
-    println!("KERN: init keyboard");
-    let _keyboard = KEYBOARD_DEVICE.clone();
-    println!("KERN: init mouse");
-    let _mouse = MOUSE_DEVICE.clone();
+    // println!("KERN: init gpu");
+    // let _gpu = GPU_DEVICE.clone();
+    // println!("KERN: init keyboard");
+    // let _keyboard = KEYBOARD_DEVICE.clone();
+    // println!("KERN: init mouse");
+    // let _mouse = MOUSE_DEVICE.clone();
     board::device_init();
     fs::list_apps();
     task::add_initproc();
+    // enable_irq();
+    log::info!("open nonblock block device read");
     *DEV_NON_BLOCKING_ACCESS.exclusive_access() = true;
+    IRQ::int_enable();
+    // *DEV_NON_BLOCKING_ACCESS.exclusive_access() = false;
     task::run_tasks();
     panic!("Unreachable in rust_main!");
 }

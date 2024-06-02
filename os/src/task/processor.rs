@@ -4,7 +4,7 @@ use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use lazy_static::*;
 use log::debug;
-use polyhal::{context_switch_pt, kernel_page_table, KContext, TrapFrame, context_switch};
+use polyhal::{context_switch, context_switch_pt, kernel_page_table, KContext, KContextArgs, TrapFrame};
 
 pub struct Processor {
     current: Option<Arc<TaskControlBlock>>,
@@ -21,6 +21,12 @@ impl Processor {
     fn get_idle_task_cx_ptr(&mut self) -> *mut KContext {
         &mut self.idle_task_cx as *mut _
     }
+
+    /// Check if the idle task cx was ready
+    pub fn idle_ready(&self) -> bool {
+        self.idle_task_cx[KContextArgs::KPC] != 0
+    }
+
     pub fn take_current(&mut self) -> Option<Arc<TaskControlBlock>> {
         self.current.take()
     }
@@ -52,7 +58,7 @@ pub fn run_tasks() {
             // unsafe {
             //     __switch(idle_task_cx_ptr, next_task_cx_ptr);
             // }
-            // info!("switch to task: {:#x?}", unsafe { next_task_cx_ptr.as_ref().unwrap() });
+            // log::info!("switch to task: {:#x?}", unsafe { next_task_cx_ptr.as_ref().unwrap() });
             unsafe {
                 context_switch_pt(idle_task_cx_ptr, next_task_cx_ptr, page_table);
             }

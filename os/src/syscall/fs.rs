@@ -2,7 +2,6 @@ use crate::fs::{make_pipe, open_file, OpenFlags};
 use crate::mm::{translated_byte_buffer, translated_refmut, translated_str};
 use crate::task::current_process;
 use alloc::sync::Arc;
-use log::info;
 use polyhal::pagetable::PageTable;
 
 pub fn sys_write(fd: usize, buf: *mut u8, len: usize) -> isize {
