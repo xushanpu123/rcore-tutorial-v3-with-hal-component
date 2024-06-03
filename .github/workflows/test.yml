@@ -54,4 +54,4 @@ jobs:
       
       - name: Checkout output
         run : |
-          grep "Usertests passed!" os/output.log·
+          grep "Usertests passed!" os/output.log
