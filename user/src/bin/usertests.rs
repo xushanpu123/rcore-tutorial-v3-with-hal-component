@@ -4,11 +4,16 @@
 #[macro_use]
 extern crate user_lib;
 
+extern crate alloc;
+
 // not in SUCC_TESTS & FAIL_TESTS
 // count_lines, infloop, user_shell, usertests
 
 // item of TESTS : app_name(argv_0), argv_1, argv_2, argv_3, exit_code
 static SUCC_TESTS: &[(&str, &str, &str, &str, i32)] = &[
+    ("filetest_simple\0", "\0", "\0", "\0", 0),
+    ("cat\0", "filea\0", "\0", "\0", 0),
+    ("cmdline_args\0", "1\0", "2\0", "\0", 0),
     ("exit\0", "\0", "\0", "\0", 0),
     ("fantastic_text\0", "\0", "\0", "\0", 0),
     ("forktest_simple\0", "\0", "\0", "\0", 0),
@@ -16,17 +21,46 @@ static SUCC_TESTS: &[(&str, &str, &str, &str, i32)] = &[
     ("forktest2\0", "\0", "\0", "\0", 0),
     ("forktree\0", "\0", "\0", "\0", 0),
     ("hello_world\0", "\0", "\0", "\0", 0),
+    ("huge_write\0", "\0", "\0", "\0", 0),
     ("matrix\0", "\0", "\0", "\0", 0),
+    ("mpsc_sem\0", "\0", "\0", "\0", 0),
+    ("phil_din_mutex\0", "\0", "\0", "\0", 0),
+    ("pipe_large_test\0", "\0", "\0", "\0", 0),
+    ("pipetest\0", "\0", "\0", "\0", 0),
+    ("adder_peterson_spin\0", "\0", "\0", "\0", 0),
+    ("adder_peterson_yield\0", "\0", "\0", "\0", 0),
+    ("adder_mutex_blocking\0", "\0", "\0", "\0", 0),
+    ("adder_mutex_spin\0", "\0", "\0", "\0", 0),
+    ("run_pipe_test\0", "\0", "\0", "\0", 0),
     ("sleep_simple\0", "\0", "\0", "\0", 0),
     ("sleep\0", "\0", "\0", "\0", 0),
+    ("sleep_simple\0", "\0", "\0", "\0", 0),
+    ("sync_sem\0", "\0", "\0", "\0", 0),
+    ("condsync_sem\0", "\0", "\0", "\0", 0),
+    ("condsync_condvar\0", "\0", "\0", "\0", 0),
+    ("threads_arg\0", "\0", "\0", "\0", 0),
+    ("threads\0", "\0", "\0", "\0", 0),
     ("yield\0", "\0", "\0", "\0", 0),
+    ("barrier_fail\0", "\0", "\0", "\0", 0),
+    ("barrier_condvar\0", "\0", "\0", "\0", 0),
 ];
 
-static FAIL_TESTS: &[(&str, &str, &str, &str, i32)] = &[("stack_overflow\0", "\0", "\0", "\0", -2)];
+static FAIL_TESTS: &[(&str, &str, &str, &str, i32)] = &[
+    ("stack_overflow\0", "\0", "\0", "\0", -11),
+    ("race_adder_loop\0", "\0", "\0", "\0", -6),
+    ("priv_csr\0", "\0", "\0", "\0", -6),
+    ("priv_inst\0", "\0", "\0", "\0", -6),
+    ("store_fault\0", "\0", "\0", "\0", -11),
+    ("until_timeout\0", "\0", "\0", "\0", -6),
+    ("adder\0", "\0", "\0", "\0", -6),
+    ("adder_simple_spin\0", "\0", "\0", "\0", -6),
+    ("adder_simple_yield\0", "\0", "\0", "\0", -6),
+];
 
+use alloc::{string::String, vec::Vec};
 use user_lib::{exec, fork, waitpid};
 
-fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> i32 {
+fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> (i32, Vec<String>) {
     let mut pass_num = 0;
     let mut arr: [*const u8; 4] = [
         core::ptr::null::<u8>(),
@@ -34,7 +68,7 @@ fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> i32 {
         core::ptr::null::<u8>(),
         core::ptr::null::<u8>(),
     ];
-
+    let mut failed_apps = Vec::new();
     for test in tests {
         println!("Usertests: Running {}", test.0);
         arr[0] = test.0.as_ptr();
@@ -62,7 +96,7 @@ fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> i32 {
 
         let pid = fork();
         if pid == 0 {
-            exec(test.0);
+            exec(test.0, &arr[..]);
             panic!("unreachable!");
         } else {
             let mut exit_code: i32 = Default::default();
@@ -71,6 +105,8 @@ fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> i32 {
             if exit_code == test.4 {
                 // summary apps with  exit_code
                 pass_num = pass_num + 1;
+            } else {
+                failed_apps.push(String::from(test.0));
             }
             println!(
                 "\x1b[32mUsertests: Test {} in Process {} exited with code {}\x1b[0m",
@@ -78,13 +114,13 @@ fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> i32 {
             );
         }
     }
-    pass_num
+    (pass_num, failed_apps)
 }
 
 #[no_mangle]
 pub fn main() -> i32 {
-    let succ_num = run_tests(SUCC_TESTS);
-    let err_num = run_tests(FAIL_TESTS);
+    let (succ_num, succ_failed) = run_tests(SUCC_TESTS);
+    let (err_num, err_failed) = run_tests(FAIL_TESTS);
     if succ_num == SUCC_TESTS.len() as i32 && err_num == FAIL_TESTS.len() as i32 {
         println!(
             "{} of sueecssed apps, {} of failed apps run correctly. \nUsertests passed!",
@@ -99,6 +135,9 @@ pub fn main() -> i32 {
             SUCC_TESTS.len(),
             succ_num
         );
+        for i in succ_failed {
+            println!("failed app {}", i);
+        }
     }
     if err_num != FAIL_TESTS.len() as i32 {
         println!(
@@ -106,6 +145,9 @@ pub fn main() -> i32 {
             FAIL_TESTS.len(),
             err_num
         );
+        for i in err_failed {
+            println!("failed app {}", i);
+        }
     }
     println!(" Usertests failed!");
     return -1;

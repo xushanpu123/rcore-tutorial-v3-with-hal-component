@@ -7,15 +7,16 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+# riscv = { git = "https://github.com/rcore-os/riscv", features = ["inline-asm"] }
+polyhal = { git = "https://github.com/Byte-OS/polyhal.git", features = ["kcontext"]}
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 buddy_system_allocator = "0.6"
 bitflags = "1.2.1"
 xmas-elf = "0.7.0"
+virtio-drivers = { git = "https://github.com/rcore-os/virtio-drivers", rev = "61ece50" }
+easy-fs = { path = "../easy-fs" }
 log = "0.4"
-polyhal = { git = "https://github.com/Huzhiwen1208/polyhal.git", branch = "feature/libos-sup", features = [
-    "kcontext",
-] }
-
+# sbi-rt = { version = "0.0.2", features = ["legacy"] }
 
 [profile.release]
 debug = true

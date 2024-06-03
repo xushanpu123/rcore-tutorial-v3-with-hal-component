@@ -1,4 +1,4 @@
-OUTPUT_ARCH(riscv)
+OUTPUT_ARCH(aarch64)
 ENTRY(_start)
 
 BASE_ADDRESS = 0xffffff8040080000;

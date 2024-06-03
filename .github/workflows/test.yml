@@ -1,5 +1,4 @@
-name: Run tests on ch6
-
+name: Run tests on ch8
 on: [push]
 
 env:
@@ -25,11 +24,6 @@ jobs:
           crate: cargo-binutils
           version: latest
           use-tool-cache: true
-      - name: Cache QEMU
-        uses: actions/cache@v3
-        with:
-          path: qemu-8.2.1
-          key: qemu-8.2.1-x86_64-riscv64
       - name: Install QEMU
         run: |
           echo ${{ github.workspace }}
@@ -60,4 +54,4 @@ jobs:
       
       - name: Checkout output
         run : |
-          grep "All applications completed" os/output.log
+          grep "Usertests passed!" os/output.log·

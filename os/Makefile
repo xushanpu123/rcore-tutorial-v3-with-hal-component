@@ -1,4 +1,4 @@
-
+# Building
 ARCH := riscv64
 ifeq ($(ARCH), x86_64)
   TARGET := x86_64-unknown-none
@@ -19,7 +19,7 @@ else ifeq ($(ARCH), aarch64)
 				-cpu cortex-a72 \
 				-machine virt \
 				-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 \
-				-kernel $(KERNEL_BIN)
+				-kernel $(KERNEL_BIN) 
 else ifeq ($(ARCH), loongarch64)
   TARGET := loongarch64-unknown-none
   QEMU_EXEC += qemu-system-$(ARCH) -kernel $(KERNEL_ELF)
@@ -29,7 +29,6 @@ else
 endif
 
 MODE := release
-export ARCH TARGET MODE
 KERNEL_ELF := target/$(TARGET)/$(MODE)/os
 KERNEL_BIN := $(KERNEL_ELF).bin
 DISASM_TMP := target/$(TARGET)/$(MODE)/asm
@@ -47,6 +46,9 @@ ifeq ($(MODE), release)
 	MODE_ARG := --release
 endif
 
+# KERNEL ENTRY
+KERNEL_ENTRY_PA := 0x80200000
+
 # Binutils
 OBJDUMP := rust-objdump --arch-name=riscv64
 OBJCOPY := rust-objcopy --binary-architecture=riscv64
@@ -54,9 +56,7 @@ OBJCOPY := rust-objcopy --binary-architecture=riscv64
 # Disassembly
 DISASM ?= -x
 
-# Run usertests or usershell
-TEST ?=
-
+# Run usertests or usershelltarget 
 build: env fs-img $(KERNEL_BIN) 
 
 env:
@@ -93,6 +93,14 @@ disasm-vim: kernel
 
 run: run-inner
 
+# QEMU_ARGS := -machine virt \
+# 			 -nographic \
+# 			 -bios default \
+# 			 -kernel $(KERNEL_BIN) \
+# 			 -drive file=$(FS_IMG),if=none,format=raw,id=x0 \
+# 			 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0 \
+# 			 -smp 1 \
+# 			 -D qemu.log -d in_asm,int,pcall,cpu_reset,guest_errors
 QEMU_EXEC += -nographic \
 				-drive file=$(FS_IMG),if=none,format=raw,id=x0 \
 				-smp 1 \
@@ -101,6 +109,7 @@ QEMU_EXEC += -nographic \
 run-inner: build
 	$(QEMU_EXEC)
 
+
 debug: build
 	@tmux new-session -d \
 		"$(QEMU_EXEC) -s -S" && \
@@ -108,7 +117,7 @@ debug: build
 		tmux -2 attach-session -d
 
 
-gdbserver: build
+gdbserver: build 
 	@$(QEMU_EXEC) -s -S
 
 gdbclient:

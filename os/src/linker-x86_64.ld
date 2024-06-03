@@ -1,4 +1,4 @@
-OUTPUT_ARCH(riscv)
+OUTPUT_ARCH(x86_64)
 ENTRY(_start)
 
 BASE_ADDRESS = 0xffffff8000200000;
@@ -32,6 +32,10 @@ SECTIONS
         *(.data .data.*)
         *(.sdata .sdata.*)
         _edata = .;
+    }
+        . = ALIGN(4K);
+    .got : {
+        *(.got .got.*)
     }
 
     .sigtrx ALIGN(4K): {
