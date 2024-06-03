@@ -6,8 +6,8 @@ use crate::sync::{Condvar, UPIntrFreeCell};
 use crate::task::schedule;
 use alloc::collections::VecDeque;
 use bitflags::*;
-use volatile::{ReadOnly, Volatile, WriteOnly};
 use log::*;
+use volatile::{ReadOnly, Volatile, WriteOnly};
 
 bitflags! {
     /// InterruptEnableRegister

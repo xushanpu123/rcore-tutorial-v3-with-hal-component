@@ -7,13 +7,13 @@ use alloc::collections::VecDeque;
 use polyhal::debug::DebugConsole;
 
 pub struct PolyInput {
-    buffer: UPIntrFreeCell<VecDeque<u8>>
+    buffer: UPIntrFreeCell<VecDeque<u8>>,
 }
 
 impl PolyInput {
     pub fn new() -> Self {
         PolyInput {
-            buffer: unsafe { UPIntrFreeCell::new(VecDeque::new()) }
+            buffer: unsafe { UPIntrFreeCell::new(VecDeque::new()) },
         }
     }
 

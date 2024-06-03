@@ -1,19 +1,19 @@
-use super::task_entry;
-use log::*;
 use super::id::RecycleAllocator;
 use super::manager::insert_into_pid2process;
+use super::task_entry;
 use super::TaskControlBlock;
 use super::{add_task, SignalFlags};
 use super::{pid_alloc, PidHandle};
 use crate::fs::{File, Stdin, Stdout};
 use crate::mm::{translated_refmut, MemorySet};
 use crate::sync::{Condvar, Mutex, Semaphore, UPIntrFreeCell, UPIntrRefMut};
-use polyhal::{KContext, KContextArgs, TrapFrame, TrapFrameArgs};
 use alloc::string::String;
 use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
+use log::*;
 use polyhal::pagetable::PageTable;
+use polyhal::{KContext, KContextArgs, TrapFrame, TrapFrameArgs};
 
 pub struct ProcessControlBlock {
     // immutable
@@ -111,7 +111,7 @@ impl ProcessControlBlock {
             Arc::clone(&process),
             ustack_base,
             true,
-            page_table
+            page_table,
         ));
         // prepare trap_cx of main thread
         let mut task_inner = task.inner_exclusive_access();
@@ -255,7 +255,7 @@ impl ProcessControlBlock {
             // here we do not allocate trap_cx or ustack again
             // but mention that we allocate a new kstack here
             false,
-            page_table
+            page_table,
         ));
         // attach task to child process
         let mut child_inner = child.inner_exclusive_access();

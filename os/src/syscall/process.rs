@@ -4,13 +4,13 @@ use crate::task::{
     current_process, current_task, exit_current_and_run_next, pid2process,
     suspend_current_and_run_next, SignalFlags,
 };
-use log::{debug, info};
-use polyhal::pagetable::PageTable;
-use polyhal::TrapFrameArgs;
 use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
+use log::{debug, info};
+use polyhal::pagetable::PageTable;
 use polyhal::time::Time;
+use polyhal::TrapFrameArgs;
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);

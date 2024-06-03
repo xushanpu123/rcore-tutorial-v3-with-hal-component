@@ -1,9 +1,9 @@
 use super::id::TaskUserRes;
 use super::task_entry;
 use super::{KernelStack, ProcessControlBlock};
-use polyhal::pagetable::PageTable;
 use crate::sync::{UPIntrFreeCell, UPIntrRefMut};
 use alloc::sync::{Arc, Weak};
+use polyhal::pagetable::PageTable;
 use polyhal::{KContext, KContextArgs, TrapFrame};
 
 pub struct TaskControlBlock {
@@ -34,7 +34,6 @@ pub struct TaskControlBlockInner {
     pub exit_code: Option<i32>,
 }
 
-
 impl TaskControlBlockInner {
     pub fn get_trap_cx(&self) -> &'static mut TrapFrame {
         let paddr = &self.trap_cx as *const TrapFrame as usize as *mut TrapFrame;
@@ -54,7 +53,7 @@ impl TaskControlBlock {
         process: Arc<ProcessControlBlock>,
         ustack_base: usize,
         alloc_user_res: bool,
-        page_table: PageTable
+        page_table: PageTable,
     ) -> Self {
         let res = TaskUserRes::new(Arc::clone(&process), ustack_base, alloc_user_res);
         // let trap_cx = res.trap_cx_ppn();
@@ -68,7 +67,7 @@ impl TaskControlBlock {
         Self {
             process: Arc::downgrade(&process),
             kstack,
-            kcontext: KContext::blank(), 
+            kcontext: KContext::blank(),
             inner: unsafe {
                 UPIntrFreeCell::new(TaskControlBlockInner {
                     res: Some(res),

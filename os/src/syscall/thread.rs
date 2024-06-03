@@ -15,7 +15,7 @@ pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
             .unwrap()
             .ustack_base,
         true,
-        page_table
+        page_table,
     ));
     // add new task to scheduler
     add_task(Arc::clone(&new_task));
@@ -38,8 +38,8 @@ pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
     //     trap_handler as usize,
     // );
     new_task_trap_cx[TrapFrameArgs::SEPC] = entry;
-    new_task_trap_cx[TrapFrameArgs::SP] = new_task_res.ustack_top(); 
-    new_task_trap_cx[TrapFrameArgs::ARG0]  = arg;
+    new_task_trap_cx[TrapFrameArgs::SP] = new_task_res.ustack_top();
+    new_task_trap_cx[TrapFrameArgs::ARG0] = arg;
     new_task_tid as isize
 }
 

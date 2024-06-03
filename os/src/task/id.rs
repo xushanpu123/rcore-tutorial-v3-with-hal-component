@@ -1,16 +1,16 @@
-use core::mem::size_of;
 use super::ProcessControlBlock;
-use polyhal::TrapFrame;
 use crate::config::{KERNEL_STACK_SIZE, PAGE_SIZE, TRAP_CONTEXT_BASE, USER_STACK_SIZE};
 use crate::mm::MapPermission;
-use polyhal::addr::VirtAddr;
 use crate::sync::UPIntrFreeCell;
 use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
+use core::mem::size_of;
 use lazy_static::*;
 use log::*;
+use polyhal::addr::VirtAddr;
+use polyhal::TrapFrame;
 
 pub struct RecycleAllocator {
     current: usize,

@@ -10,7 +10,6 @@ pub const MMIO: &[(usize, usize)] = &[
 #[cfg(any(target_arch = "riscv64", target_arch = "aarch64"))]
 pub type BlockDeviceImpl = crate::drivers::block::VirtIOBlock;
 
-
 // pub type CharDeviceImpl = crate::drivers::chardev::NS16550a<VIRT_UART>;
 pub type CharDeviceImpl = crate::drivers::chardev::PolyInput;
 

@@ -44,8 +44,7 @@ impl BlockDevice for RamDiskBlock {
             // dest.as_mut().unwrap().copy_from_slice(buf);
         }
     }
-    fn handle_irq(&self) {
-    }
+    fn handle_irq(&self) {}
 }
 
 impl RamDiskBlock {

@@ -1,8 +1,8 @@
-use polyhal::shutdown;
 use crate::task::current_kstack_top;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use log::*;
+use polyhal::shutdown;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {

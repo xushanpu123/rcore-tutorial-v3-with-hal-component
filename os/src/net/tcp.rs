@@ -53,8 +53,7 @@ impl File for TCP {
                 let data_len = data.len();
                 let mut left = 0;
                 let buffer_i_len = buf.len().min(data_len - left);
-                buf[..buffer_i_len]
-                    .copy_from_slice(&data[left..(left + buffer_i_len)]);
+                buf[..buffer_i_len].copy_from_slice(&data[left..(left + buffer_i_len)]);
                 left += buffer_i_len;
                 return left;
             } else {

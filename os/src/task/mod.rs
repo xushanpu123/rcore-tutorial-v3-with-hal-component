@@ -8,19 +8,19 @@ mod task;
 
 use self::id::TaskUserRes;
 use crate::fs::{open_file, OpenFlags};
-use polyhal::shutdown;
-use polyhal::{run_user_task, KContext, TrapFrame};
 use alloc::{sync::Arc, vec::Vec};
 use lazy_static::*;
 use manager::fetch_task;
+use polyhal::shutdown;
+use polyhal::{run_user_task, KContext, TrapFrame};
 use process::ProcessControlBlock;
 
 pub use id::{pid_alloc, KernelStack, PidHandle, IDLE_PID};
 pub use manager::{add_task, pid2process, remove_from_pid2process, wakeup_task};
 use processor::PROCESSOR;
 pub use processor::{
-    current_kstack_top, current_process, current_task, current_trap_cx,
-    run_tasks, schedule, take_current_task,
+    current_kstack_top, current_process, current_task, current_trap_cx, run_tasks, schedule,
+    take_current_task,
 };
 pub use signal::SignalFlags;
 pub use task::{TaskControlBlock, TaskStatus};
@@ -60,7 +60,6 @@ fn task_entry() {
         run_user_task(ctx_mut);
     }
 }
-
 
 /// This function must be followed by a schedule
 pub fn block_current_task() -> *mut KContext {

@@ -31,12 +31,16 @@ impl BlockDevice for VirtIOBlock {
             let mut resp = BlkResp::default();
             let mut token = 0;
             let task_cx_ptr = self.virtio_blk.exclusive_session(|blk| {
-                token = unsafe { blk.read_blocks_nb(block_id, &mut request, buf, &mut resp).unwrap() };
+                token = unsafe {
+                    blk.read_blocks_nb(block_id, &mut request, buf, &mut resp)
+                        .unwrap()
+                };
                 self.condvars.get(&token).unwrap().wait_no_sched()
             });
             schedule(task_cx_ptr);
             self.virtio_blk.exclusive_session(|blk| unsafe {
-                blk.complete_read_blocks(token, &request, buf, &mut resp).unwrap();
+                blk.complete_read_blocks(token, &request, buf, &mut resp)
+                    .unwrap();
             });
             assert_eq!(
                 resp.status(),
@@ -57,12 +61,16 @@ impl BlockDevice for VirtIOBlock {
             let mut resp = BlkResp::default();
             let mut token = 0;
             let task_cx_ptr = self.virtio_blk.exclusive_session(|blk| {
-                token = unsafe { blk.write_blocks_nb(block_id, &mut request, buf, &mut resp).unwrap() };
+                token = unsafe {
+                    blk.write_blocks_nb(block_id, &mut request, buf, &mut resp)
+                        .unwrap()
+                };
                 self.condvars.get(&token).unwrap().wait_no_sched()
             });
             schedule(task_cx_ptr);
-            self.virtio_blk.exclusive_session(|blk| unsafe{
-                blk.complete_write_blocks(token, &request, buf, &mut resp).unwrap();
+            self.virtio_blk.exclusive_session(|blk| unsafe {
+                blk.complete_write_blocks(token, &request, buf, &mut resp)
+                    .unwrap();
             });
             assert_eq!(
                 resp.status(),
@@ -83,7 +91,6 @@ impl BlockDevice for VirtIOBlock {
             // }
             blk.ack_interrupt();
             if let Some(token) = blk.peek_used() {
-                log::info!("peek token: {:?}", token);
                 self.condvars.get(&token).unwrap().signal();
             }
         });
@@ -110,8 +117,10 @@ impl VirtIOBlock {
                     VirtIOBlk::<VirtioHal, MmioTransport>::new(
                         MmioTransport::new(NonNull::new_unchecked(
                             (VIRTIO0 | VIRT_ADDR_START) as *mut VirtIOHeader,
-                        )).unwrap()
-                    ).unwrap(),
+                        ))
+                        .unwrap(),
+                    )
+                    .unwrap(),
                 )
             };
             #[cfg(target_arch = "aarch64")]

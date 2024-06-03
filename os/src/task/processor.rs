@@ -4,7 +4,9 @@ use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use lazy_static::*;
 use log::debug;
-use polyhal::{context_switch, context_switch_pt, kernel_page_table, KContext, KContextArgs, TrapFrame};
+use polyhal::{
+    context_switch, context_switch_pt, kernel_page_table, KContext, KContextArgs, TrapFrame,
+};
 
 pub struct Processor {
     current: Option<Arc<TaskControlBlock>>,
@@ -36,7 +38,8 @@ impl Processor {
 }
 
 lazy_static! {
-    pub static ref PROCESSOR: UPIntrFreeCell<Processor> = unsafe { UPIntrFreeCell::new(Processor::new()) };
+    pub static ref PROCESSOR: UPIntrFreeCell<Processor> =
+        unsafe { UPIntrFreeCell::new(Processor::new()) };
 }
 
 pub fn run_tasks() {

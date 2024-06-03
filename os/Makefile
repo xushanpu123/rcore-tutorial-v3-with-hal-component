@@ -3,10 +3,8 @@ ARCH := riscv64
 ifeq ($(ARCH), x86_64)
   TARGET := x86_64-unknown-none
   QEMU_EXEC += qemu-system-x86_64 \
-				-machine q35 \
 				-device virtio-blk-pci,drive=x0 \
 				-kernel $(KERNEL_ELF) \
-				-cpu IvyBridge-v2 \
 				-device virtio-gpu-pci -vga none \
 				-device virtio-net-pci,netdev=net0 \
 				-device virtio-keyboard-pci \
@@ -52,7 +50,9 @@ BOOTLOADER := ../bootloader/$(SBI)-$(BOARD).bin
 # GUI
 GUI ?= off
 ifeq ($(GUI), off)
-	GUI_OPTION := -display none
+	GUI_OPTION := -nographic -display none
+else
+	GUI_OPTION := -serial stdio
 endif
 
 # Building mode argument
@@ -101,7 +101,6 @@ QEMU_EXEC += -drive file=$(FS_IMG),if=none,format=raw,id=x0
 QEMU_EXEC += -smp 1 \
 			 -D qemu.log -d in_asm,int,pcall,cpu_reset,guest_errors \
 			 $(GUI_OPTION) \
-			 -serial stdio \
 			 -netdev user,id=net0,hostfwd=udp::6200-:2000,hostfwd=tcp::6201-:80
 
 
@@ -112,7 +111,7 @@ fdt:
 run-inner: build
 	$(QEMU_EXEC)
 
-just-run: env $(KERNEL_BIN)
+just-run: $(KERNEL_BIN)
 	$(QEMU_EXEC)
 
 debug: build

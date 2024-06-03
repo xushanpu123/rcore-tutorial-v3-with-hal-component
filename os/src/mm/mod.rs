@@ -5,7 +5,10 @@ mod memory_set;
 mod page_table;
 
 pub use address::VPNRange;
-pub use frame_allocator::{frame_alloc, frame_alloc_persist, frame_alloc_more, frame_dealloc, FrameTracker, init_frame_allocator};
+pub use frame_allocator::{
+    frame_alloc, frame_alloc_more, frame_alloc_persist, frame_dealloc, init_frame_allocator,
+    FrameTracker,
+};
 pub use memory_set::{MapArea, MapPermission, MapType, MemorySet};
 pub use page_table::{translated_byte_buffer, translated_ref, translated_refmut, translated_str};
 

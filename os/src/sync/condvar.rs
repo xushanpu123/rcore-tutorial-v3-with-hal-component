@@ -1,7 +1,6 @@
 use crate::sync::{Mutex, UPIntrFreeCell};
 use crate::task::{
-    block_current_and_run_next, block_current_task, current_task, wakeup_task,
-    TaskControlBlock,
+    block_current_and_run_next, block_current_task, current_task, wakeup_task, TaskControlBlock,
 };
 use alloc::{collections::VecDeque, sync::Arc};
 use polyhal::KContext;

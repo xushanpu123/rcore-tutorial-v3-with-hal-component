@@ -123,9 +123,9 @@ impl File for OSInode {
     fn write(&self, buf: &mut [u8]) -> usize {
         let mut inner = self.inner.exclusive_access();
         let mut total_write_size = 0usize;
-            let write_size = inner.inode.write_at(inner.offset, buf);
-            inner.offset += write_size;
-            total_write_size += write_size;
+        let write_size = inner.inode.write_at(inner.offset, buf);
+        inner.offset += write_size;
+        total_write_size += write_size;
         total_write_size
     }
 }

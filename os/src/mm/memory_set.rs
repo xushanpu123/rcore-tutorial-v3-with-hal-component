@@ -1,12 +1,11 @@
-use super::{frame_alloc, FrameTracker};
-use log::info;
-use polyhal::addr::{VirtAddr, VirtPage, PhysPage};
 use super::VPNRange;
+use super::{frame_alloc, FrameTracker};
 use crate::config::PAGE_SIZE;
 use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
-use polyhal::pagetable::{MappingSize, PageTableWrapper, MappingFlags, PageTable};
-
+use log::info;
+use polyhal::addr::{PhysPage, VirtAddr, VirtPage};
+use polyhal::pagetable::{MappingFlags, MappingSize, PageTable, PageTableWrapper};
 
 pub struct MemorySet {
     page_table: PageTableWrapper,
@@ -107,9 +106,7 @@ impl MemorySet {
             for vpn in area.vpn_range {
                 let src_ppn = user_space.translate(vpn).unwrap().0;
                 let dst_ppn = memory_set.translate(vpn).unwrap().0;
-                dst_ppn
-                    .get_buffer()
-                    .copy_from_slice(src_ppn.get_buffer());
+                dst_ppn.get_buffer().copy_from_slice(src_ppn.get_buffer());
             }
         }
         memory_set
@@ -118,7 +115,9 @@ impl MemorySet {
         self.page_table.0.change();
     }
     pub fn translate(&self, vpn: VirtPage) -> Option<(PhysPage, MappingFlags)> {
-        self.page_table.translate(vpn.into()).map(|x| (x.0.into(), x.1))
+        self.page_table
+            .translate(vpn.into())
+            .map(|x| (x.0.into(), x.1))
     }
     pub fn recycle_data_pages(&mut self) {
         self.areas.clear();
@@ -166,7 +165,12 @@ impl MapArea {
         for vpn in self.vpn_range {
             // self.map_one(page_table, vpn);
             let p_tracker = frame_alloc().expect("can't allocate frame");
-            page_table.map_page(vpn, p_tracker.ppn, self.map_perm.into(), MappingSize::Page4KB);
+            page_table.map_page(
+                vpn,
+                p_tracker.ppn,
+                self.map_perm.into(),
+                MappingSize::Page4KB,
+            );
             self.data_frames.insert(vpn, p_tracker);
         }
     }

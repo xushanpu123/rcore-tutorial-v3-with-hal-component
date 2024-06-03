@@ -18,26 +18,29 @@ mod config;
 mod drivers;
 mod fs;
 mod lang_items;
+mod logging;
 mod mm;
 mod net;
 mod sync;
 mod syscall;
 mod task;
 mod timer;
-mod logging;
 
 use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
 
+use crate::task::{current_process, exit_current_and_run_next};
+use crate::{syscall::syscall, task::check_signals_of_current};
 use lazy_static::*;
+use log::*;
 use polyhal::debug::DebugConsole;
 use polyhal::irq::IRQ;
-use sync::UPIntrFreeCell;
-use crate::{syscall::syscall, task::check_signals_of_current};
-use crate::task::{current_process, exit_current_and_run_next};
+use polyhal::{
+    addr::PhysPage, get_cpu_num, get_fdt, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs,
+    TrapType,
+};
 use polyhal::{debug, enable_irq, TrapType::*};
-use log::*;
-use polyhal::{addr::PhysPage, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType, get_cpu_num, get_fdt};
+use sync::UPIntrFreeCell;
 use task::{current_add_signal, current_task, suspend_current_and_run_next, SignalFlags};
 
 use crate::drivers::block::BLOCK_DEVICE;
@@ -115,7 +118,6 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
                     8 => BLOCK_DEVICE.handle_irq(),
                     // 10 => UART.handle_irq(),
                     _ => panic!("unsupported IRQ {}", intr_src_id),
-
                 }
                 plic.complete(0, IntrTargetPriority::Supervisor, intr_src_id);
             }
@@ -136,8 +138,8 @@ pub fn rust_main(_hartid: usize) -> ! {
     mm::init();
     logging::init(option_env!("LOG"));
     polyhal::init(&PageAllocImpl);
-    get_mem_areas().into_iter().for_each(|(start, size)|{
-        mm::init_frame_allocator(start, start+size);
+    get_mem_areas().into_iter().for_each(|(start, size)| {
+        mm::init_frame_allocator(start, start + size);
     });
     UART.init();
     IRQ::int_disable();
@@ -159,7 +161,6 @@ pub fn rust_main(_hartid: usize) -> ! {
     task::run_tasks();
     panic!("Unreachable in rust_main!");
 }
-
 
 pub struct PageAllocImpl;
 

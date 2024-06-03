@@ -25,8 +25,7 @@ fn enumerate_pci(mmconfig_base: *mut u8) {
             "Found {} at {}, status {:?} command {:?}",
             info, device_function, status, command
         );
-        
-        
+
         if let Some(virtio_type) = virtio_device_type(&info) {
             info!("  VirtIO {:?}", virtio_type);
 

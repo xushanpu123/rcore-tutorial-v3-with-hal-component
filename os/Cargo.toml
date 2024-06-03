@@ -32,9 +32,6 @@ edition = "2021"
 name = "os"
 version = "0.1.0"
 
-[patch."https://github.com/Byte-OS/arm_gic".arm_gic]
-path = "crates/arm_gic"
-
 [patch."https://github.com/Byte-OS/polyhal.git".polyhal]
 path = "crates/polyhal"
 

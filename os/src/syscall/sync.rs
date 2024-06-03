@@ -1,5 +1,7 @@
 use crate::sync::{Condvar, Mutex, MutexBlocking, MutexSpin, Semaphore};
-use crate::task::{block_current_and_run_next, current_process, current_task, suspend_current_and_run_next};
+use crate::task::{
+    block_current_and_run_next, current_process, current_task, suspend_current_and_run_next,
+};
 use crate::timer::{add_timer, get_time_ms};
 use alloc::sync::Arc;
 use polyhal::time::Time;

@@ -46,10 +46,11 @@ impl VirtIONetWrapper {
             let virtio = VirtIONet::<VirtioHal, MmioTransport, 32>::new(
                 MmioTransport::new(NonNull::new_unchecked(
                     (VIRTIO8 | VIRT_ADDR_START) as *mut VirtIOHeader,
-                )).unwrap(),
-                512
+                ))
+                .unwrap(),
+                512,
             )
-                .expect("can't create net device by virtio");
+            .expect("can't create net device by virtio");
             VirtIONetWrapper(UPIntrFreeCell::new(virtio))
         }
     }

@@ -4,8 +4,8 @@ mod poly_input;
 use crate::board::CharDeviceImpl;
 use alloc::sync::Arc;
 use lazy_static::*;
-pub use poly_input::PolyInput;
 pub use ns16550a::NS16550a;
+pub use poly_input::PolyInput;
 
 pub trait CharDevice {
     fn init(&self);
