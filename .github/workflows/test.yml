@@ -1,63 +1,58 @@
-# name: Run tests on ch6
+name: Run tests on ch5
 
-# on: [push]
+on: [push]
 
-# env:
-#   CARGO_TERM_COLOR: always
-#   rust_toolchain: nightly-2024-01-18
+env:
+  CARGO_TERM_COLOR: always
+  rust_toolchain: nightly-2024-01-18
 
-# jobs:
-#   run-tests:
-#     runs-on: ubuntu-latest
-#     strategy:
-#       matrix:
-#         arch: [riscv64, x86_64, aarch64, loongarch64]
-#     steps:
-#       - uses: actions/checkout@v3
-#       - uses: actions-rs/toolchain@v1
-#         with:
-#           profile: minimal
-#           toolchain: ${{ env.rust_toolchain }}
-#           components: rust-src, llvm-tools-preview
-#           target: riscv64gc-unknown-none-elf
-#       - uses: actions-rs/install@v0.1
-#         with:
-#           crate: cargo-binutils
-#           version: latest
-#           use-tool-cache: true
-#       - name: Cache QEMU
-#         uses: actions/cache@v3
-#         with:
-#           path: qemu-8.2.1
-#           key: qemu-8.2.1-x86_64-riscv64
-#       - name: Install QEMU
-#         run: |
-#           echo ${{ github.workspace }}
-#           wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip
-#           unzip ninja-linux.zip
-#           sudo mv ninja /usr/local/bin/
-#           ninja --version
-#           if [ ! -d qemu-8.2.1 ]; then
-#             wget https://download.qemu.org/qemu-8.2.1.tar.xz
-#             tar -xf qemu-8.2.1.tar.xz
-#             cd qemu-8.2.1
-#             ./configure --target-list=riscv64-softmmu,x86_64-softmmu,loongarch64-softmmu,aarch64-softmmu
-#             make -j
-#           else
-#             cd qemu-8.2.1
-#           fi
-#           sudo make install
-#           qemu-system-riscv64 --version
-#           qemu-system-aarch64 --version
-#           qemu-system-loongarch64 --version
-#           qemu-system-x86_64 --version
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [riscv64, x86_64, aarch64, loongarch64]
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.rust_toolchain }}
+          components: rust-src, llvm-tools-preview
+          target: riscv64gc-unknown-none-elf
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: cargo-binutils
+          version: latest
+          use-tool-cache: true
+      - name: Install QEMU
+        run: |
+          echo ${{ github.workspace }}
+          wget https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip
+          unzip ninja-linux.zip
+          sudo mv ninja /usr/local/bin/
+          ninja --version
+          if [ ! -d qemu-8.2.1 ]; then
+            wget https://download.qemu.org/qemu-8.2.1.tar.xz
+            tar -xf qemu-8.2.1.tar.xz
+            cd qemu-8.2.1
+            ./configure --target-list=riscv64-softmmu,x86_64-softmmu,loongarch64-softmmu,aarch64-softmmu
+            make -j
+          else
+            cd qemu-8.2.1
+          fi
+          sudo make install
+          qemu-system-riscv64 --version
+          qemu-system-aarch64 --version
+          qemu-system-loongarch64 --version
+          qemu-system-x86_64 --version
 
-#       - name: Run usertests in ${{ matrix.arch }}
-#         run: |
-#           cd os 
-#           timeout 240 make run ARCH=${{ matrix.arch }} 2>&1 | tee output.log || echo "qemu exited"
-#         timeout-minutes: 10
+      - name: Run usertests in ${{ matrix.arch }}
+        run: |
+          cd os 
+          timeout 240 make run TEST=1 ARCH=${{ matrix.arch }} 2>&1 | tee output.log || echo "qemu exited"
+        timeout-minutes: 10
       
-#       - name: Checkout output
-#         run : |
-#           grep "All applications completed" os/output.log
+      - name: Checkout output
+        run : |
+          grep "Usertests passed!" os/output.log

@@ -17,16 +17,21 @@ SECTIONS
         *(.srodata .srodata.*)
     }
     . = ALIGN(4K);
+    .got : {
+        *(.got .got.*)
+    }
+    . = ALIGN(4K);
     .data : {
         *(.data .data.*)
         *(.sdata .sdata.*)
     }
+    . = ALIGN(4K);
     .bss : {
         *(.bss .bss.*)
         *(.sbss .sbss.*)
     }
     /DISCARD/ : {
-        *(.eh_frame)
+        *(.eh_frame*)
         *(.debug*)
     }
 }
