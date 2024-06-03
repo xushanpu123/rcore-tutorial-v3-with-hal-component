@@ -80,7 +80,8 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             current_add_signal(SignalFlags::SIGILL);
         }
         Time => {
-            if current_task().is_none() || !ctx.from_user() {
+            // log::info!("Time from user: {}", ctx.from_user());
+            if !ctx.from_user() || current_task().is_none() {
                 return;
             }
             suspend_current_and_run_next();
