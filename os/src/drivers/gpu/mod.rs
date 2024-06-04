@@ -9,7 +9,10 @@ use virtio_drivers::{
     device::gpu::VirtIOGpu,
     transport::mmio::{MmioTransport, VirtIOHeader},
 };
+#[cfg(target_arch = "riscv64")]
 const VIRTIO7: usize = 0x10007000 + VIRT_ADDR_START;
+#[cfg(target_arch = "aarch64")]
+const VIRTIO7: usize = 0xa00_3c00 + VIRT_ADDR_START;
 pub trait GpuDevice: Send + Sync + Any {
     fn update_cursor(&self);
     fn get_framebuffer(&self) -> &mut [u8];

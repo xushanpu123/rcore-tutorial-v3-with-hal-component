@@ -39,7 +39,7 @@ use polyhal::{
     addr::PhysPage, get_cpu_num, get_fdt, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs,
     TrapType,
 };
-use polyhal::{debug, enable_irq, TrapType::*};
+use polyhal::{debug, TrapType::*};
 use sync::UPIntrFreeCell;
 use task::{current_add_signal, current_task, suspend_current_and_run_next, SignalFlags};
 
@@ -94,6 +94,8 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             {
                 match irq.irq_num() {
                     0x4f => BLOCK_DEVICE.handle_irq(),
+                    0x4c => KEYBOARD_DEVICE.handle_irq(),
+                    0x4b => MOUSE_DEVICE.handle_irq(),
                     // aarch64 uart interrupt
                     // 0x21 => {
                     //     // let key = DebugConsole::getchar().unwrap();
@@ -144,12 +146,12 @@ pub fn rust_main(_hartid: usize) -> ! {
     UART.init();
     IRQ::int_disable();
     println!("KERN: init plic");
-    // println!("KERN: init gpu");
-    // let _gpu = GPU_DEVICE.clone();
-    // println!("KERN: init keyboard");
-    // let _keyboard = KEYBOARD_DEVICE.clone();
-    // println!("KERN: init mouse");
-    // let _mouse = MOUSE_DEVICE.clone();
+    println!("KERN: init gpu");
+    let _gpu = GPU_DEVICE.clone();
+    println!("KERN: init keyboard");
+    let _keyboard = KEYBOARD_DEVICE.clone();
+    println!("KERN: init mouse");
+    let _mouse = MOUSE_DEVICE.clone();
     board::device_init();
     fs::list_apps();
     task::add_initproc();

@@ -8,9 +8,16 @@ use core::ptr::NonNull;
 use polyhal::VIRT_ADDR_START;
 use virtio_drivers::device::input::VirtIOInput;
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
+use polyhal::irq::IRQ;
 
+#[cfg(target_arch = "riscv64")]
 const VIRTIO5: usize = 0x10005000 + VIRT_ADDR_START;
+#[cfg(target_arch = "aarch64")]
+const VIRTIO5: usize = 0x0a003800 + VIRT_ADDR_START;
+#[cfg(target_arch = "riscv64")]
 const VIRTIO6: usize = 0x10006000 + VIRT_ADDR_START;
+#[cfg(target_arch = "aarch64")]
+const VIRTIO6: usize = 0x0a003600 + VIRT_ADDR_START;
 
 struct VirtIOInputInner {
     virtio_input: VirtIOInput<VirtioHal, MmioTransport>,
@@ -44,6 +51,14 @@ impl VirtIOInputWrapper {
             },
             events: VecDeque::new(),
         };
+        if addr == VIRTIO5{
+            #[cfg(target_arch = "aarch64")]
+            IRQ::irq_enable(0x4c);
+        }
+        if addr == VIRTIO6{
+            #[cfg(target_arch = "aarch64")]
+            IRQ::irq_enable(0x4b);
+        }
         Self {
             inner: unsafe { UPIntrFreeCell::new(inner) },
             condvar: Condvar::new(),
