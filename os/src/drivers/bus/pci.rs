@@ -15,7 +15,7 @@ use crate::drivers::virtio::VirtioHal;
 
 const MMCONFIG_BASE: usize = 0xB000_0000;
 
-fn enumerate_pci(mmconfig_base: *mut u8) {
+fn enumerate_pci(mmconfig_base: *mut u8, mut f: impl FnMut(&PciTransport) -> bool) -> Option<PciTransport> {
     info!("mmconfig_base = {:#x}", mmconfig_base as usize);
 
     let mut pci_root = unsafe { PciRoot::new(mmconfig_base, Cam::Ecam) };
@@ -43,9 +43,12 @@ fn enumerate_pci(mmconfig_base: *mut u8) {
                 transport.device_type(),
                 transport.read_device_features(),
             );
-            // virtio_device(transport);
+            if f(&transport) {
+                return Some(transport);
+            }
         }
     }
+    None
 }
 
 fn dump_bar_contents(root: &mut PciRoot, device_function: DeviceFunction, bar_index: u8) {
@@ -67,6 +70,6 @@ fn dump_bar_contents(root: &mut PciRoot, device_function: DeviceFunction, bar_in
     trace!("End of dump");
 }
 
-pub fn init() {
-    enumerate_pci(MMCONFIG_BASE as _);
+pub fn find_device(f: impl FnMut(&PciTransport) -> bool) -> Option<PciTransport> {
+    enumerate_pci(MMCONFIG_BASE as _, f)
 }

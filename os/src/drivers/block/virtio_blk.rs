@@ -10,6 +10,8 @@ use polyhal::irq::IRQ;
 use polyhal::VIRT_ADDR_START;
 use virtio_drivers::device::blk::{BlkReq, BlkResp, RespStatus, VirtIOBlk};
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
+use virtio_drivers::transport::pci::PciTransport;
+use virtio_drivers::transport::{DeviceType, Transport};
 
 #[cfg(target_arch = "riscv64")]
 #[allow(unused)]
@@ -18,10 +20,17 @@ const VIRTIO0: usize = 0x10008000 + VIRT_ADDR_START;
 #[cfg(target_arch = "aarch64")]
 const VIRTIO0: usize = 0xa00_3e00 + VIRT_ADDR_START;
 
+#[cfg(not(target_arch = "x86_64"))]
+type VirtIoTransport = MmioTransport;
+#[cfg(target_arch = "x86_64")]
+type VirtIoTransport = PciTransport;
+
 pub struct VirtIOBlock {
-    virtio_blk: UPIntrFreeCell<VirtIOBlk<VirtioHal, MmioTransport>>,
+    virtio_blk: UPIntrFreeCell<VirtIOBlk<VirtioHal, VirtIoTransport>>,
     condvars: BTreeMap<u16, Condvar>,
 }
+
+
 
 impl BlockDevice for VirtIOBlock {
     fn read_block(&self, block_id: usize, buf: &mut [u8]) {
@@ -89,7 +98,10 @@ impl BlockDevice for VirtIOBlock {
             // if *DEV_NON_BLOCKING_ACCESS.exclusive_access() {
             //     blk.ack_interrupt();
             // }
-            blk.ack_interrupt();
+            // Return to the exclusive if available
+            if !blk.ack_interrupt() {
+                return;
+            }
             if let Some(token) = blk.peek_used() {
                 self.condvars.get(&token).unwrap().signal();
             }
@@ -100,10 +112,19 @@ impl BlockDevice for VirtIOBlock {
 impl VirtIOBlock {
     pub fn new() -> Self {
         #[cfg(target_arch = "x86_64")]
-        {
-            super::super::bus::pci::init();
-            todo!("init pci");
-        }
+        let virtio_blk = {
+            let transport = super::super::bus::pci::find_device(|pci_transport| {
+                let res = pci_transport.device_type() == DeviceType::Block;
+                res
+            }).expect("can't find any transport");
+            IRQ::irq_enable(10);
+            IRQ::irq_enable(11);
+            unsafe {
+                UPIntrFreeCell::new(
+                    VirtIOBlk::<VirtioHal, PciTransport>::new(transport).expect("failed to create blk driver")
+                )
+            }
+        };
         // let virtio_blk = unsafe {
         //     UPIntrFreeCell::new(
         //         VirtIOBlk::<VirtioHal>::new(&mut *(VIRTIO0 as *mut VirtIOHeader)).unwrap(),
@@ -111,7 +132,7 @@ impl VirtIOBlock {
         // };
 
         #[cfg(not(target_arch = "x86_64"))]
-        {
+        let virtio_blk = {
             let virtio_blk = unsafe {
                 UPIntrFreeCell::new(
                     VirtIOBlk::<VirtioHal, MmioTransport>::new(
@@ -125,16 +146,17 @@ impl VirtIOBlock {
             };
             #[cfg(target_arch = "aarch64")]
             IRQ::irq_enable(0x4f);
-            let mut condvars = BTreeMap::new();
-            let channels = virtio_blk.exclusive_access().virt_queue_size();
-            for i in 0..channels {
-                let condvar = Condvar::new();
-                condvars.insert(i, condvar);
-            }
-            Self {
-                virtio_blk,
-                condvars,
-            }
+            virtio_blk
+        };
+        let mut condvars = BTreeMap::new();
+        let channels = virtio_blk.exclusive_access().virt_queue_size();
+        for i in 0..channels {
+            let condvar = Condvar::new();
+            condvars.insert(i, condvar);
+        }
+        Self {
+            virtio_blk,
+            condvars,
         }
     }
 }

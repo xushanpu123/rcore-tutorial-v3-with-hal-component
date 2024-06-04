@@ -40,6 +40,7 @@ use polyhal::{
     TrapType,
 };
 use polyhal::{debug, TrapType::*};
+use polyhal::TrapType::*;
 use sync::UPIntrFreeCell;
 use task::{current_add_signal, current_task, suspend_current_and_run_next, SignalFlags};
 
@@ -90,6 +91,25 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             suspend_current_and_run_next();
         }
         Irq(irq) => {
+            log::info!("irq: {}", irq.irq_num());
+            //   VirtIO Block  IRQ: 266 & 0xff = 10;
+            //   VirtIO GPU  IRQ: 267 & 0xff = 11;
+            //   VirtIO Network  IRQ: 267
+            //   VirtIO Input  IRQ: 266
+            //   VirtIO Input  IRQ: 266
+            #[cfg(target_arch = "x86_64")]
+            {
+                match irq.irq_num() {
+                    0x4 => {
+                        log::info!("COM Input: {:?}", DebugConsole::getchar());
+                    }
+                    10 => {
+                        BLOCK_DEVICE.handle_irq();
+                        
+                    },
+                    _=>{}
+                };
+            }
             #[cfg(target_arch = "aarch64")]
             {
                 match irq.irq_num() {
@@ -155,7 +175,6 @@ pub fn rust_main(_hartid: usize) -> ! {
     board::device_init();
     fs::list_apps();
     task::add_initproc();
-    // enable_irq();
     log::info!("open nonblock block device read");
     *DEV_NON_BLOCKING_ACCESS.exclusive_access() = true;
     IRQ::int_enable();

@@ -3,6 +3,7 @@ ARCH := riscv64
 ifeq ($(ARCH), x86_64)
   TARGET := x86_64-unknown-none
   QEMU_EXEC += qemu-system-x86_64 \
+				-machine q35 \
 				-device virtio-blk-pci,drive=x0 \
 				-kernel $(KERNEL_ELF) \
 				-device virtio-gpu-pci -vga none \
@@ -111,7 +112,7 @@ fdt:
 run-inner: build
 	$(QEMU_EXEC)
 
-just-run: $(KERNEL_BIN)
+just-run: env $(KERNEL_BIN)
 	$(QEMU_EXEC)
 
 debug: build
