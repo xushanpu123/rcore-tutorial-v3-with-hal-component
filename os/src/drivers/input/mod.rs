@@ -7,6 +7,9 @@ use core::any::Any;
 use core::ptr::NonNull;
 use polyhal::VIRT_ADDR_START;
 use virtio_drivers::device::input::VirtIOInput;
+use virtio_drivers::transport::pci::PciTransport;
+use virtio_drivers::transport::DeviceType;
+use virtio_drivers::transport::Transport;
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
 use polyhal::irq::IRQ;
 
@@ -18,9 +21,16 @@ const VIRTIO5: usize = 0x0a003800 + VIRT_ADDR_START;
 const VIRTIO6: usize = 0x10006000 + VIRT_ADDR_START;
 #[cfg(target_arch = "aarch64")]
 const VIRTIO6: usize = 0x0a003600 + VIRT_ADDR_START;
-
+#[cfg(target_arch = "x86_64")]
+const VIRTIO6: usize = 0;
+#[cfg(target_arch = "x86_64")]
+const VIRTIO5: usize = 0;
+#[cfg(not(target_arch = "x86_64"))]
+type VirtIoTransport = MmioTransport;
+#[cfg(target_arch = "x86_64")]
+type VirtIoTransport = PciTransport;
 struct VirtIOInputInner {
-    virtio_input: VirtIOInput<VirtioHal, MmioTransport>,
+    virtio_input: VirtIOInput<VirtioHal, VirtIoTransport>,
     events: VecDeque<u64>,
 }
 

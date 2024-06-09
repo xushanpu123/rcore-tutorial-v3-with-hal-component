@@ -5,10 +5,17 @@ use core::{any::Any, ptr::NonNull};
 use embedded_graphics::pixelcolor::Rgb888;
 use polyhal::VIRT_ADDR_START;
 use tinybmp::Bmp;
+use virtio_drivers::transport::pci::PciTransport;
+use virtio_drivers::transport::DeviceType;
+use virtio_drivers::transport::Transport;
 use virtio_drivers::{
     device::gpu::VirtIOGpu,
     transport::mmio::{MmioTransport, VirtIOHeader},
 };
+#[cfg(not(target_arch = "x86_64"))]
+type VirtIoTransport = MmioTransport;
+#[cfg(target_arch = "x86_64")]
+type VirtIoTransport = PciTransport;
 #[cfg(target_arch = "riscv64")]
 const VIRTIO7: usize = 0x10007000 + VIRT_ADDR_START;
 #[cfg(target_arch = "aarch64")]
@@ -24,17 +31,26 @@ lazy_static::lazy_static!(
 );
 
 pub struct VirtIOGpuWrapper {
-    gpu: UPIntrFreeCell<VirtIOGpu<VirtioHal, MmioTransport>>,
+    gpu: UPIntrFreeCell<VirtIOGpu<VirtioHal, VirtIoTransport>>,
     fb: &'static [u8],
 }
 static BMP_DATA: &[u8] = include_bytes!("../../assert/mouse.bmp");
 impl VirtIOGpuWrapper {
     pub fn new() -> Self {
         unsafe {
+            #[cfg(not(target_arch = "x86_64"))]
             let mut virtio = VirtIOGpu::<VirtioHal, MmioTransport>::new(
                 MmioTransport::new(NonNull::new_unchecked(VIRTIO7 as *mut VirtIOHeader)).unwrap(),
             )
             .unwrap();
+            #[cfg(target_arch = "x86_64")]
+            let mut virtio = {
+                let transport = crate::drivers::bus::pci::find_device(|pci_transport| {
+                    let res = pci_transport.device_type() == DeviceType::GPU;
+                    res
+                }).expect("can't find any transport");
+                VirtIOGpu::<VirtioHal, PciTransport>::new(transport).expect("failed to create blk driver")
+            };           
 
             let fbuffer = virtio.setup_framebuffer().unwrap();
             let len = fbuffer.len();
