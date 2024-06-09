@@ -25,12 +25,12 @@ const VIRTIO6: usize = 0x0a003600 + VIRT_ADDR_START;
 const VIRTIO6: usize = 0;
 #[cfg(target_arch = "x86_64")]
 const VIRTIO5: usize = 0;
-#[cfg(not(target_arch = "x86_64"))]
-type VirtIoTransport = MmioTransport;
-#[cfg(target_arch = "x86_64")]
-type VirtIoTransport = PciTransport;
+// #[cfg(not(target_arch = "x86_64"))]
+// type VirtIoTransport = MmioTransport;
+// #[cfg(target_arch = "x86_64")]
+// type VirtIoTransport = PciTransport;
 struct VirtIOInputInner {
-    virtio_input: VirtIOInput<VirtioHal, VirtIoTransport>,
+    virtio_input: VirtIOInput<VirtioHal, MmioTransport>,
     events: VecDeque<u64>,
 }
 
