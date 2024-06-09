@@ -105,8 +105,10 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
                     }
                     10 => {
                         BLOCK_DEVICE.handle_irq();
+                        // KEYBOARD_DEVICE.handle_irq();
+                        // MOUSE_DEVICE.handle_irq();
                         
-                    },
+                    },                
                     _=>{}
                 };
             }
@@ -168,8 +170,8 @@ pub fn rust_main(_hartid: usize) -> ! {
     println!("KERN: init plic");
     println!("KERN: init gpu");
     let _gpu = GPU_DEVICE.clone();
-    // println!("KERN: init keyboard");
-    // let _keyboard = KEYBOARD_DEVICE.clone();
+    println!("KERN: init keyboard");
+    let _keyboard = KEYBOARD_DEVICE.clone();
     // println!("KERN: init mouse");
     // let _mouse = MOUSE_DEVICE.clone();
     board::device_init();

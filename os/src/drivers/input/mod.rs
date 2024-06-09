@@ -25,12 +25,12 @@ const VIRTIO6: usize = 0x0a003600 + VIRT_ADDR_START;
 const VIRTIO6: usize = 0;
 #[cfg(target_arch = "x86_64")]
 const VIRTIO5: usize = 0;
-// #[cfg(not(target_arch = "x86_64"))]
-// type VirtIoTransport = MmioTransport;
-// #[cfg(target_arch = "x86_64")]
-// type VirtIoTransport = PciTransport;
+#[cfg(not(target_arch = "x86_64"))]
+type VirtIoTransport = MmioTransport;
+#[cfg(target_arch = "x86_64")]
+type VirtIoTransport = PciTransport;
 struct VirtIOInputInner {
-    virtio_input: VirtIOInput<VirtioHal, MmioTransport>,
+    virtio_input: VirtIOInput<VirtioHal, VirtIoTransport>,
     events: VecDeque<u64>,
 }
 
@@ -53,12 +53,22 @@ lazy_static::lazy_static!(
 impl VirtIOInputWrapper {
     pub fn new(addr: usize) -> Self {
         let inner = VirtIOInputInner {
+            #[cfg(not(target_arch="x86_64"))]
             virtio_input: unsafe {
                 VirtIOInput::<VirtioHal, MmioTransport>::new(
                     MmioTransport::new(NonNull::new_unchecked(addr as *mut VirtIOHeader)).unwrap(),
                 )
                 .unwrap()
             },
+            #[cfg(target_arch="x86_64")]
+            virtio_input: {
+                let transport = crate::drivers::bus::pci::find_device(|pci_transport| {
+                    log::info!("input transport: {:#x?}", pci_transport);
+                    let res = pci_transport.device_type() == DeviceType::Input;
+                    res
+                }).expect("can't find any transport");
+                VirtIOInput::<VirtioHal, PciTransport>::new(transport).expect("failed to create blk driver")
+            },         
             events: VecDeque::new(),
         };
         if addr == VIRTIO5{
