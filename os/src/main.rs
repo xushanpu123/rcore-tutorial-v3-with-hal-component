@@ -21,35 +21,37 @@
 #![feature(panic_info_message)]
 #![feature(alloc_error_handler)]
 
-extern crate polyhal;
 extern crate alloc;
+extern crate polyhal;
 #[macro_use]
 extern crate bitflags;
-use core::arch::global_asm;
 use buddy_system_allocator::LockedHeap;
+use core::arch::global_asm;
 use log::info;
+use polyhal::common::{get_mem_areas, PageAlloc};
 use polyhal::pagetable::PageTableWrapper;
+use polyhal::trap::TrapType;
+use polyhal::trap::TrapType::*;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 
-#[global_allocator]            
+#[global_allocator]
 static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
 //use log::*;
 #[macro_use]
 mod console;
 pub mod batch;
+pub mod config;
 pub mod frame_allocater;
 pub mod heap_allocator;
 mod lang_items;
 mod logging;
 mod sync;
 pub mod syscall;
-pub mod config;
-use crate::syscall::syscall;
 use crate::batch::*;
 pub use crate::frame_allocater::*;
-use polyhal::{get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
-use polyhal::addr::PhysPage;
-use polyhal::TrapType::*;
+use crate::syscall::syscall;
 pub use heap_allocator::init_heap;
+use polyhal::addr::PhysPage;
 global_asm!(include_str!("link_app.S"));
 
 pub struct PageAllocImpl;
@@ -71,7 +73,7 @@ impl PageAlloc for PageAllocImpl {
 fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
     // println!("trap_type @ {:x?} {:#x?}", trap_type, ctx);
     match trap_type {
-        UserEnvCall => {
+        SysCall => {
             // jump to next instruction anyway
             ctx.syscall_ok();
             let args = ctx.args();
@@ -83,16 +85,17 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             ctx[TrapFrameArgs::RET] = result as usize;
         }
         StorePageFault(_paddr) | LoadPageFault(_paddr) | InstructionPageFault(_paddr) => {
-            println!("[kernel] PageFault in application, kernel killed it. paddr={:x}",_paddr);
+            println!(
+                "[kernel] PageFault in application, kernel killed it. paddr={:x}",
+                _paddr
+            );
             run_next_app();
         }
         IllegalInstruction(_) => {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
             run_next_app();
         }
-        Time => {
-            
-        }
+        Timer => {}
         _ => {
             panic!("unsuspended trap type: {:?}", trap_type);
         }
@@ -108,9 +111,13 @@ fn main(hartid: usize) {
     println!("[kernel] Hello, world!");
     init_heap();
     logging::init(Some("trace"));
-    polyhal::init(&PageAllocImpl);
+    polyhal::common::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)| {
-        info!("frame alloocator add frame {:#x} - {:#x}", start, start + size);
+        info!(
+            "frame alloocator add frame {:#x} - {:#x}",
+            start,
+            start + size
+        );
         init_frame_allocator(start, start + size);
     });
     let new_page_table = PageTableWrapper::alloc();

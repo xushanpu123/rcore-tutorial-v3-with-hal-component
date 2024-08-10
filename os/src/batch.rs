@@ -1,17 +1,17 @@
 //! batch subsystem
 
 use crate::config::PAGE_SIZE;
+pub use crate::frame_allocater::{frame_alloc, frame_alloc_persist, frame_dealloc, FrameTracker};
 use crate::sync::UPSafeCell;
-use core::arch::asm;
+
 use lazy_static::*;
 use log::info;
-use polyhal::{TrapFrame,TrapFrameArgs,run_user_task,shutdown,VIRT_ADDR_START};
-use polyhal::pagetable::{MappingFlags, MappingSize, PageTable, PageTableWrapper};
 use polyhal::addr::*;
-use polyhal::mem::Barrier;
-pub use crate::frame_allocater::{frame_alloc, frame_alloc_persist, frame_dealloc, FrameTracker};
-const USER_STACK_SIZE: usize = 4096 * 2;
-const KERNEL_STACK_SIZE: usize = 4096 * 2;
+use polyhal::instruction::Instruction;
+
+use polyhal::pagetable::{MappingFlags, MappingSize, PageTable};
+use polyhal::trap::run_user_task;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 const MAX_APP_NUM: usize = 16;
 const APP_BASE_ADDRESS: usize = 0x80400000;
 const APP_SIZE_LIMIT: usize = 0x20000;
@@ -43,34 +43,6 @@ impl Into<MappingFlags> for MapPermission {
         flags
     }
 }
-#[repr(align(4096))]
-struct KernelStack {
-    data: [u8; KERNEL_STACK_SIZE],
-}
-
-#[repr(align(4096))]
-struct UserStack {
-    data: [u8; USER_STACK_SIZE],
-}
-
-static KERNEL_STACK: KernelStack = KernelStack {
-    data: [0; KERNEL_STACK_SIZE],
-};
-static USER_STACK: UserStack = UserStack {
-    data: [0; USER_STACK_SIZE],
-};
-
-impl KernelStack {
-    fn get_sp(&self) -> usize {
-        self.data.as_ptr() as usize + KERNEL_STACK_SIZE
-    }
-}
-
-impl UserStack {
-    fn get_sp(&self) -> usize {
-        self.data.as_ptr() as usize + USER_STACK_SIZE
-    }
-}
 
 struct AppManager {
     num_app: usize,
@@ -94,24 +66,42 @@ impl AppManager {
     unsafe fn load_app(&self, app_id: usize) {
         if app_id >= self.num_app {
             println!("All applications completed!");
-            shutdown();
+            Instruction::shutdown();
         }
         let page_table = PageTable::current();
         for i in 0..0x20 {
-            page_table.map_page(VirtPage::from_addr(APP_BASE_ADDRESS + PAGE_SIZE * i), frame_alloc_persist().expect("can't allocate frame"), MappingFlags::URWX, MappingSize::Page4KB);
+            page_table.map_page(
+                VirtPage::from_addr(APP_BASE_ADDRESS + PAGE_SIZE * i),
+                frame_alloc_persist().expect("can't allocate frame"),
+                MappingFlags::URWX,
+                MappingSize::Page4KB,
+            );
         }
-        page_table.map_page(VirtPage::from_addr(0x1_8000_0000), frame_alloc_persist().expect("can't allocate frame"), MappingFlags::URWX, MappingSize::Page4KB);
+        page_table.map_page(
+            VirtPage::from_addr(0x1_8000_0000),
+            frame_alloc_persist().expect("can't allocate frame"),
+            MappingFlags::URWX,
+            MappingSize::Page4KB,
+        );
         println!("[kernel] Loading app_{}", app_id);
-        info!("app src: {:#x} size: {:#x}", self.app_start[app_id], self.app_start[app_id + 1] - self.app_start[app_id]);
+        info!(
+            "app src: {:#x} size: {:#x}",
+            self.app_start[app_id],
+            self.app_start[app_id + 1] - self.app_start[app_id]
+        );
         // clear app area
         core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, APP_SIZE_LIMIT).fill(0);
         let app_src = core::slice::from_raw_parts(
             self.app_start[app_id] as *const u8,
             self.app_start[app_id + 1] - self.app_start[app_id],
         );
-        info!("app src: {:#x} size: {:#x}", self.app_start[app_id], self.app_start[app_id + 1] - self.app_start[app_id]);
+        info!(
+            "app src: {:#x} size: {:#x}",
+            self.app_start[app_id],
+            self.app_start[app_id + 1] - self.app_start[app_id]
+        );
         let app_dst = core::slice::from_raw_parts_mut(APP_BASE_ADDRESS as *mut u8, app_src.len());
-		app_dst.copy_from_slice(app_src);
+        app_dst.copy_from_slice(app_src);
         // hexdump(&app_src);
         // hexdump(&app_dst);
         // panic!("123");
@@ -122,7 +112,7 @@ impl AppManager {
         // the code of the next app into the instruction memory.
         // See also: riscv non-priv spec chapter 3, 'Zifencei' extension.
         // asm!("fence.i");
-		// Barrier::complete_sync()
+        // Barrier::complete_sync()
     }
 
     pub fn get_current_app(&self) -> usize {
@@ -190,7 +180,6 @@ pub fn run_next_app() -> ! {
     loop {
         run_user_task(ctx_mut);
     }
-    panic!("Unreachable in batch::run_current_app!");
 }
 
 #[no_mangle]

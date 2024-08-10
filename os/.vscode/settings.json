@@ -1,0 +1,5 @@
+
+{
+    "rust-analyzer.cargo.allTargets": false,
+    "rust-analyzer.procMacro.enable": true
+}

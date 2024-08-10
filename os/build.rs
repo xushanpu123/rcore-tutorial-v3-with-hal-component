@@ -3,14 +3,14 @@ use std::fs::{read_dir, File};
 use std::io::{Result, Write};
 
 fn main() {
-	let target=env::var("TARGET").unwrap();
+    let target = env::var("TARGET").unwrap();
     println!("cargo:rerun-if-changed=../user/src/");
     println!("cargo:rerun-if-changed=../user/target/{}", target);
     insert_app_data().unwrap();
 }
 
 fn insert_app_data() -> Result<()> {
-	let target=env::var("TARGET").unwrap();
+    let target = env::var("TARGET").unwrap();
     let mut f = File::create("src/link_app.S").unwrap();
     let mut apps: Vec<_> = read_dir("../user/src/bin")
         .unwrap()
