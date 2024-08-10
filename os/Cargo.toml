@@ -11,9 +11,10 @@ lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 log = "0.4"
 bitflags = "1.2.1"
 buddy_system_allocator = "0.6"
-polyhal = { git = "https://github.com/Huzhiwen1208/polyhal.git", branch = "feature/libos-sup", features = [
-    "kcontext",
-] }
+# polyhal = { git = "https://github.com/Huzhiwen1208/polyhal.git", branch = "feature/libos-sup", features = [
+#     "kcontext",
+# ] }
+polyhal = { git = "https://github.com/Byte-OS/polyhal", features = ["boot", "trap"] }
 
 [profile.release]
 debug = true

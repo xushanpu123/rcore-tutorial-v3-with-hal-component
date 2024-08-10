@@ -9,24 +9,21 @@
 //! Be careful when you see `__switch` ASM function in `switch.S`. Control flow around this function
 //! might not be what you expect.
 
-
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::config::{MAX_APP_NUM,PAGE_SIZE};
-use crate::loader::{get_num_app,get_ksp,get_base_i};
-use crate::polyhal::shutdown;
+use crate::config::{MAX_APP_NUM, PAGE_SIZE};
+use crate::loader::{get_base_i, get_ksp, get_num_app};
 use crate::sync::UPSafeCell;
 use alloc::boxed::Box;
-use log::info;
 use alloc::vec::Vec;
 use lazy_static::*;
+use log::info;
+use polyhal::instruction::Instruction;
+use polyhal::kcontext::{context_switch, read_current_tp, KContext, KContextArgs};
+use polyhal::trap::run_user_task;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 use task::{TaskControlBlock, TaskStatus};
-use polyhal::{
-    read_current_tp, run_user_task, KContext, KContextArgs, TrapFrame, TrapFrameArgs,
-};
-use polyhal::context_switch;
-
 /// The task manager, where all the tasks are managed.
 ///
 /// Functions implemented on `TaskManager` deals with all task state transitions
@@ -55,9 +52,8 @@ lazy_static! {
     /// Global variable: TASK_MANAGER
     pub static ref TASK_MANAGER: TaskManager = {
         let num_app = get_num_app();
-        let mut kcx = KContext::blank();
         let mut tasks = Vec::new();
-        for i in 0..MAX_APP_NUM{
+        for _ in 0..MAX_APP_NUM{
             tasks.push(TaskControlBlock {
                 task_cx: KContext::blank(),
                 task_status: TaskStatus::UnInit,
@@ -66,7 +62,7 @@ lazy_static! {
             task.task_status = TaskStatus::Ready;
             task.task_cx[KContextArgs::KPC] = task_entry as usize;
             task.task_cx[KContextArgs::KSP] = get_ksp(i);
-            task.task_cx[KContextArgs::KTP] = read_current_tp();          
+            task.task_cx[KContextArgs::KTP] = read_current_tp();
             }
         TaskManager {
             num_app,
@@ -79,7 +75,6 @@ lazy_static! {
         }
     };
 }
-
 
 impl TaskManager {
     /// Run the first task in task list.
@@ -144,10 +139,10 @@ impl TaskManager {
             // go back to user mode
         } else {
             println!("All applications completed!");
-            shutdown();
+            Instruction::shutdown();
         }
     }
-    fn current_task(&self)->usize{
+    fn current_task(&self) -> usize {
         self.inner.exclusive_access().current_task
     }
 }
@@ -168,19 +163,17 @@ fn mark_current_suspended() {
     TASK_MANAGER.mark_current_suspended();
 }
 
-
 fn task_entry() {
     let app_id = TASK_MANAGER.current_task();
     // 这里的 Box::new 是为了保证 TrapFrame 能够被被正确的对齐
     // 如果没有 Box::new 在使用 x86_64 的时候会由于地址没有对齐导致 #GP 错误
     let mut trap_cx = Box::new(TrapFrame::new());
     trap_cx[TrapFrameArgs::SEPC] = get_base_i(app_id);
-    trap_cx[TrapFrameArgs::SP] = 0x1_8000_0000 + (app_id+1)*PAGE_SIZE;
+    trap_cx[TrapFrameArgs::SP] = 0x1_8000_0000 + (app_id + 1) * PAGE_SIZE;
     let ctx_mut = trap_cx.as_mut();
     loop {
         run_user_task(ctx_mut);
     }
-    panic!("Unreachable in batch::run_current_app!");
 }
 
 /// exit current task
