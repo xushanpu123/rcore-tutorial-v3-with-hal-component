@@ -13,8 +13,7 @@
 #![feature(panic_info_message)]
 
 use buddy_system_allocator::LockedHeap;
-use polyhal::TrapFrame;
-use polyhal::TrapType;
+use polyhal::instruction::Instruction;
 
 #[global_allocator]
 static HEAP_ALLOCATOR: LockedHeap = LockedHeap::empty();
@@ -25,11 +24,6 @@ mod console;
 mod lang_items;
 mod logging;
 
-/// kernel interrupt
-#[polyhal::arch_interrupt]
-fn kernel_interrupt(_ctx: &mut TrapFrame, _trap_type: TrapType) {
-
-}
 //The entry point
 #[polyhal::arch_entry]
 fn main(hartid: usize) {
@@ -37,5 +31,5 @@ fn main(hartid: usize) {
         return;
     }
     println!("[kernel] Hello, world!");
-    polyhal::shutdown();
+    Instruction::shutdown();
 }
