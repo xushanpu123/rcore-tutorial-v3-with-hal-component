@@ -8,8 +8,8 @@ use alloc::string::String;
 use alloc::sync::Arc;
 use alloc::vec::Vec;
 use polyhal::time::Time;
-use polyhal::TrapFrameArgs;
 use log::info;
+use polyhal::trapframe::TrapFrameArgs;
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);

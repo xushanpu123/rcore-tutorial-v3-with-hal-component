@@ -1,12 +1,12 @@
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
-use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
-use polyhal::addr::{PhysAddr, PhysPage};
+use polyhal::{addr::{PhysAddr, PhysPage}, pagetable::PAGE_SIZE};
 use core::{
     fmt::{self, Debug, Formatter},
     mem::size_of,
 };
 use lazy_static::*;
+use polyhal::consts::VIRT_ADDR_START;
 
 pub struct FrameTracker {
     pub ppn: PhysPage,

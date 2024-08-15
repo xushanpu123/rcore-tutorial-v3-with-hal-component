@@ -5,12 +5,12 @@ use crate::mm::{frame_alloc, frame_dealloc, FrameTracker};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use polyhal::addr::{PhysAddr, PhysPage};
-use polyhal::VIRT_ADDR_START;
 use lazy_static::*;
 use log::debug;
 use virtio_drivers::device::blk::VirtIOBlk;
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
 use virtio_drivers::{BufferDirection, Hal};
+use polyhal::consts::VIRT_ADDR_START;
 
 #[allow(unused)]
 #[cfg(target_arch = "riscv64")]

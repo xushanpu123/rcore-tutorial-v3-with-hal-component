@@ -8,14 +8,14 @@ mod task;
 
 use crate::fs::{open_file, OpenFlags};
 use alloc::sync::Arc;
-use polyhal::shutdown;
-use polyhal::KContext;
-use polyhal::TrapFrameArgs;
 use lazy_static::*;
 use log::info;
 use manager::fetch_task;
 use manager::remove_from_pid2task;
+use polyhal::instruction::Instruction;
+use polyhal::trapframe::TrapFrameArgs;
 use task::{TaskControlBlock, TaskStatus};
+use polyhal::kcontext::KContext;
 
 pub use action::{SignalAction, SignalActions};
 pub use manager::{add_task, pid2task};
@@ -55,7 +55,7 @@ pub fn exit_current_and_run_next(exit_code: i32) {
             "[kernel] Idle process exit with exit_code {} ...",
             exit_code
         );
-        shutdown();
+        Instruction::shutdown();
     }
 
     // remove from pid2task
