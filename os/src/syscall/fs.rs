@@ -1,6 +1,7 @@
 //! File and filesystem-related syscalls
+use polyhal::debug_console::DebugConsole;
+
 use crate::mm::translated_byte_buffer;
-use polyhal::debug::DebugConsole;
 use crate::task::{current_user_token, suspend_current_and_run_next};
 
 const FD_STDIN: usize = 0;

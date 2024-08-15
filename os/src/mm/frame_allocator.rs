@@ -1,14 +1,13 @@
 //! Implementation of [`FrameAllocator`] which
 //! controls all the frames in the operating system.
 
-use polyhal::addr::{PhysAddr, PhysPage};
-use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
-
+use polyhal::{addr::{PhysAddr, PhysPage}, consts::VIRT_ADDR_START};
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
 use core::fmt::{self, Debug, Formatter};
 use lazy_static::*;
 use core::mem::size_of;
+use polyhal::pagetable::PAGE_SIZE;
 
 /// manage a frame which has the same lifecycle as the tracker
 pub struct FrameTracker {

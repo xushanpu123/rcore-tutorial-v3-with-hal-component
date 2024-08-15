@@ -1,14 +1,15 @@
 //!Implementation of [`TaskControlBlock`]
 use super::{current_task_tcb};
 use alloc::sync::{Arc};
+use polyhal::kcontext::KContextArgs;
 use polyhal::pagetable::PageTable;
 use crate::config::KERNEL_STACK_SIZE;
 use crate::mm::MemorySet;
 use core::mem::size_of;
-use polyhal::{
-    read_current_tp, run_user_task, KContext, KContextArgs, TrapFrame, TrapFrameArgs,
-};
-
+use polyhal::kcontext::KContext;
+use polyhal::trap::run_user_task;
+use polyhal::kcontext::read_current_tp;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 pub struct KernelStack {
     inner: Arc<[u128; KERNEL_STACK_SIZE / size_of::<u128>()]>,
 }

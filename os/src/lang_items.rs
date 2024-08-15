@@ -1,6 +1,7 @@
-use polyhal::shutdown;
+
 use core::panic::PanicInfo;
 use log::*;
+use polyhal::instruction::Instruction;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -14,5 +15,5 @@ fn panic(info: &PanicInfo) -> ! {
     } else {
         error!("[kernel] Panicked: {}", info.message().unwrap());
     }
-    shutdown()
+    Instruction::shutdown()
 }

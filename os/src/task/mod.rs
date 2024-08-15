@@ -13,17 +13,15 @@
 #[allow(clippy::module_inception)]
 mod task;
 
-use crate::loader::{get_num_app,get_app_data};
-use polyhal::shutdown;
-use crate::sync::UPSafeCell;
+use crate::{loader::{get_app_data, get_num_app}, sync::UPSafeCell};
 use log::info;
 use alloc::vec::Vec;
 use lazy_static::*;
 use task::{TaskControlBlock, TaskStatus};
-use polyhal::{KContext, TrapFrame};
-use polyhal::{pagetable::PageTable};
-use polyhal::context_switch_pt;
-
+use polyhal::{instruction::Instruction, pagetable::PageTable};
+use polyhal::kcontext::KContext;
+use polyhal::kcontext::context_switch_pt;
+use polyhal::trapframe::TrapFrame;
 /// The task manager, where all the tasks are managed.
 ///
 /// Functions implemented on `TaskManager` deals with all task state transitions
@@ -135,7 +133,7 @@ impl TaskManager {
             // go back to user mode
         } else {
             println!("All applications completed!");
-            shutdown();
+            Instruction::shutdown();
         }
     }
     fn current_task(&self)->usize{
