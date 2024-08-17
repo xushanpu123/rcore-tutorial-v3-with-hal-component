@@ -3,7 +3,7 @@ use crate::net::udp::UDP;
 use crate::net::{net_interrupt_handler, IPv4};
 use crate::task::{current_process, current_task, current_trap_cx};
 use alloc::sync::Arc;
-use polyhal::TrapFrameArgs;
+use polyhal::trapframe::TrapFrameArgs;
 
 // just support udp
 pub fn sys_connect(raddr: u32, lport: u16, rport: u16) -> isize {

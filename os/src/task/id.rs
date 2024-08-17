@@ -6,11 +6,11 @@ use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
+use polyhal::trapframe::TrapFrame;
 use core::mem::size_of;
 use lazy_static::*;
 use log::*;
 use polyhal::addr::VirtAddr;
-use polyhal::TrapFrame;
 
 pub struct RecycleAllocator {
     current: usize,

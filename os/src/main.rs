@@ -33,16 +33,15 @@ use crate::task::{current_process, exit_current_and_run_next};
 use crate::{syscall::syscall, task::check_signals_of_current};
 use lazy_static::*;
 use log::*;
-use polyhal::debug::DebugConsole;
+use polyhal::common::{get_mem_areas, PageAlloc};
+use polyhal::debug_console::DebugConsole;
 use polyhal::irq::IRQ;
-use polyhal::{
-    addr::PhysPage, get_cpu_num, get_fdt, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs,
-    TrapType,
-};
-use polyhal::{debug, TrapType::*};
-use polyhal::TrapType::*;
+use polyhal::addr::PhysPage;
+use polyhal::trap::TrapType;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 use sync::UPIntrFreeCell;
 use task::{current_add_signal, current_task, suspend_current_and_run_next, SignalFlags};
+use crate::TrapType::*;
 
 use crate::drivers::block::BLOCK_DEVICE;
 #[cfg(target_arch = "riscv64")]
@@ -57,7 +56,7 @@ lazy_static! {
 fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
     match trap_type {
         Breakpoint => return,
-        UserEnvCall => {
+        SysCall => {
             // jump to next instruction anyway
             ctx.syscall_ok();
             let args = ctx.args();
@@ -83,7 +82,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             log::error!("Illegal instruction");
             current_add_signal(SignalFlags::SIGILL);
         }
-        Time => {
+        Timer => {
             // log::info!("Time from user: {}", ctx.from_user());
             if !ctx.from_user() || current_task().is_none() {
                 return;
@@ -91,7 +90,6 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             suspend_current_and_run_next();
         }
         Irq(irq) => {
-            log::info!("irq: {}", irq.irq_num());
             //   VirtIO Block  IRQ: 266 & 0xff = 10;
             //   VirtIO GPU  IRQ: 267 & 0xff = 11;
             //   VirtIO Network  IRQ: 267
@@ -161,7 +159,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
 pub fn rust_main(_hartid: usize) -> ! {
     mm::init();
     logging::init(option_env!("LOG"));
-    polyhal::init(&PageAllocImpl);
+    polyhal::common::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)| {
         mm::init_frame_allocator(start, start + size);
     });
@@ -177,7 +175,6 @@ pub fn rust_main(_hartid: usize) -> ! {
     board::device_init();
     fs::list_apps();
     task::add_initproc();
-    log::info!("open nonblock block device read");
     *DEV_NON_BLOCKING_ACCESS.exclusive_access() = true;
     IRQ::int_enable();
     // *DEV_NON_BLOCKING_ACCESS.exclusive_access() = false;

@@ -19,7 +19,7 @@ git = "https://github.com/yfblock/lose-net-stack"
 rev = "db42380"
 
 [dependencies.polyhal]
-features = ["kcontext"]
+features = ["kcontext", "trap", "boot"]
 git = "https://github.com/Byte-OS/polyhal.git"
 
 [dependencies.virtio-drivers]

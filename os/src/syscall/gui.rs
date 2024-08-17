@@ -5,8 +5,8 @@ use alloc::slice;
 use log::info;
 use polyhal::addr::VirtAddr;
 use polyhal::addr::{PhysAddr, PhysPage, VirtPage};
-use polyhal::pagetable::{MappingFlags, MappingSize, PageTable};
-use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
+use polyhal::consts::VIRT_ADDR_START;
+use polyhal::pagetable::{MappingFlags, MappingSize, PageTable, PAGE_SIZE};
 const FB_VADDR: usize = 0x10000000;
 
 pub fn sys_framebuffer() -> isize {

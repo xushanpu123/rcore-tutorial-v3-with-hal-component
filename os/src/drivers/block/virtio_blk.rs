@@ -7,11 +7,11 @@ use crate::task::schedule;
 use crate::DEV_NON_BLOCKING_ACCESS;
 use alloc::collections::BTreeMap;
 use polyhal::irq::IRQ;
-use polyhal::VIRT_ADDR_START;
 use virtio_drivers::device::blk::{BlkReq, BlkResp, RespStatus, VirtIOBlk};
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
 use virtio_drivers::transport::pci::PciTransport;
 use virtio_drivers::transport::{DeviceType, Transport};
+use polyhal::consts::VIRT_ADDR_START;
 
 #[cfg(target_arch = "riscv64")]
 #[allow(unused)]

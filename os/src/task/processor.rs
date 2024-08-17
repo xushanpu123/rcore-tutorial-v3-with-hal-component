@@ -4,9 +4,9 @@ use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use lazy_static::*;
 use log::debug;
-use polyhal::{
-    context_switch, context_switch_pt, kernel_page_table, KContext, KContextArgs, TrapFrame,
-};
+use polyhal::boot::boot_page_table;
+use polyhal::kcontext::{context_switch_pt, KContext, KContextArgs};
+use polyhal::trapframe::TrapFrame;
 
 pub struct Processor {
     current: Option<Arc<TaskControlBlock>>,
@@ -114,6 +114,6 @@ pub fn schedule(switched_task_cx_ptr: *mut KContext) {
     //     __switch(switched_task_cx_ptr, idle_task_cx_ptr);
     // }
     unsafe {
-        context_switch_pt(switched_task_cx_ptr, idle_task_cx_ptr, kernel_page_table());
+        context_switch_pt(switched_task_cx_ptr, idle_task_cx_ptr, boot_page_table());
     }
 }

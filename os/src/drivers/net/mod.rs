@@ -5,7 +5,7 @@ use crate::drivers::virtio::VirtioHal;
 use crate::sync::UPIntrFreeCell;
 use alloc::sync::Arc;
 use lazy_static::*;
-use polyhal::VIRT_ADDR_START;
+use polyhal::consts::VIRT_ADDR_START;
 use virtio_drivers::device::net::VirtIONet;
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
 

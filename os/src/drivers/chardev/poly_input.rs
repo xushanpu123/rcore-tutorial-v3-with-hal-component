@@ -4,7 +4,7 @@
 use super::CharDevice;
 use crate::{sync::UPIntrFreeCell, task::suspend_current_and_run_next};
 use alloc::collections::VecDeque;
-use polyhal::debug::DebugConsole;
+use polyhal::debug_console::DebugConsole;
 
 pub struct PolyInput {
     buffer: UPIntrFreeCell<VecDeque<u8>>,

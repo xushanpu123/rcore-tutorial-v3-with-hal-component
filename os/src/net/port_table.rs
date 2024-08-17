@@ -4,8 +4,7 @@ use crate::task::TaskControlBlock;
 use alloc::{sync::Arc, vec::Vec};
 use lazy_static::lazy_static;
 use lose_net_stack::packets::tcp::TCPPacket;
-use polyhal::{TrapFrame, TrapFrameArgs};
-
+use polyhal::trapframe::TrapFrameArgs;
 use super::tcp::TCP;
 
 pub struct Port {

@@ -6,7 +6,7 @@ use alloc::vec::Vec;
 use lazy_static::*;
 use polyhal::addr::PhysAddr;
 use polyhal::addr::PhysPage;
-use polyhal::VIRT_ADDR_START;
+use polyhal::consts::VIRT_ADDR_START;
 use virtio_drivers::{BufferDirection, Hal};
 
 lazy_static! {

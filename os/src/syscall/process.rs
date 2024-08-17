@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 use log::{debug, info};
 use polyhal::pagetable::PageTable;
 use polyhal::time::Time;
-use polyhal::TrapFrameArgs;
+use polyhal::trapframe::TrapFrameArgs;
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);
@@ -58,14 +58,11 @@ pub fn sys_exec(path: *const u8, mut args: *const usize) -> isize {
             args = args.add(1);
         }
     }
-    log::info!("exec 0");
     if let Some(app_inode) = open_file(path.as_str(), OpenFlags::RDONLY) {
-        log::info!("exec 1");
         let all_data = app_inode.read_all();
         let process = current_process();
         let argc = args_vec.len();
         process.exec(all_data.as_slice(), args_vec);
-        log::info!("exec 2");
         // return argc because cx.x[10] will be covered with it later
         argc as isize
     } else {

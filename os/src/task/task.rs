@@ -3,8 +3,9 @@ use super::task_entry;
 use super::{KernelStack, ProcessControlBlock};
 use crate::sync::{UPIntrFreeCell, UPIntrRefMut};
 use alloc::sync::{Arc, Weak};
+use polyhal::kcontext::{KContext, KContextArgs};
 use polyhal::pagetable::PageTable;
-use polyhal::{KContext, KContextArgs, TrapFrame};
+use polyhal::trapframe::TrapFrame;
 
 pub struct TaskControlBlock {
     // immutable

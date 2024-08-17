@@ -1,6 +1,6 @@
 use crate::task::{add_task, current_task, TaskControlBlock};
 use alloc::sync::Arc;
-use polyhal::TrapFrameArgs;
+use polyhal::trapframe::TrapFrameArgs;
 
 pub fn sys_thread_create(entry: usize, arg: usize) -> isize {
     let task = current_task().unwrap();

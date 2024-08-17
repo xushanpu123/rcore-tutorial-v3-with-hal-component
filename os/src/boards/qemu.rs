@@ -19,8 +19,7 @@ pub const VIRT_UART: usize = 0x1000_0000 + VIRT_ADDR_START;
 pub const VIRTGPU_XRES: u32 = 1280;
 #[allow(unused)]
 pub const VIRTGPU_YRES: u32 = 800;
-
-use polyhal::VIRT_ADDR_START;
+use polyhal::consts::VIRT_ADDR_START;
 
 use crate::drivers::block::BLOCK_DEVICE;
 use crate::drivers::chardev::{CharDevice, UART};

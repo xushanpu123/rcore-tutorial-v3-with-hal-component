@@ -1,8 +1,6 @@
 use core::fmt::{self, Write};
-
 use log::{self, info, Level, LevelFilter, Log, Metadata, Record};
-use polyhal::debug::DebugConsole;
-
+use polyhal::debug_console::DebugConsole;
 pub struct Logger;
 
 impl Log for Logger {

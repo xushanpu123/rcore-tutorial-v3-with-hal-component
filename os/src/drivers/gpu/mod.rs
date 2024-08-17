@@ -3,11 +3,11 @@ use crate::sync::UPIntrFreeCell;
 use alloc::{sync::Arc, vec::Vec};
 use core::{any::Any, ptr::NonNull};
 use embedded_graphics::pixelcolor::Rgb888;
-use polyhal::VIRT_ADDR_START;
 use tinybmp::Bmp;
 use virtio_drivers::transport::pci::PciTransport;
 use virtio_drivers::transport::DeviceType;
 use virtio_drivers::transport::Transport;
+use polyhal::consts::VIRT_ADDR_START;
 use virtio_drivers::{
     device::gpu::VirtIOGpu,
     transport::mmio::{MmioTransport, VirtIOHeader},

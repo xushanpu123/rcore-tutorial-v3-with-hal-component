@@ -12,8 +12,10 @@ use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
 use log::*;
+use polyhal::kcontext::KContextArgs;
 use polyhal::pagetable::PageTable;
-use polyhal::{KContext, KContextArgs, TrapFrame, TrapFrameArgs};
+use polyhal::trapframe::TrapFrame;
+use polyhal::trapframe::TrapFrameArgs;
 
 pub struct ProcessControlBlock {
     // immutable

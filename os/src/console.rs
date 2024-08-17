@@ -1,7 +1,8 @@
+use polyhal::debug_console::DebugConsole;
+
 use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
 use core::fmt::{self, Write};
-use polyhal::debug::DebugConsole;
 struct Stdout;
 
 impl Write for Stdout {

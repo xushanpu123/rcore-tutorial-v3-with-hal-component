@@ -5,7 +5,7 @@ use crate::drivers::chardev::CharDevice;
 use crate::drivers::chardev::UART;
 
 use log::info;
-use polyhal::{addr::VirtAddr, debug::DebugConsole, pagetable::PageTable};
+use polyhal::{addr::VirtAddr, pagetable::PageTable};
 
 use crate::task::{current_process, suspend_current_and_run_next};
 

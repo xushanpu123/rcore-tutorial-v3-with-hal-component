@@ -5,13 +5,13 @@ use alloc::collections::VecDeque;
 use alloc::sync::Arc;
 use core::any::Any;
 use core::ptr::NonNull;
-use polyhal::VIRT_ADDR_START;
 use virtio_drivers::device::input::VirtIOInput;
 use virtio_drivers::transport::pci::PciTransport;
 use virtio_drivers::transport::DeviceType;
 use virtio_drivers::transport::Transport;
 use virtio_drivers::transport::mmio::{MmioTransport, VirtIOHeader};
 use polyhal::irq::IRQ;
+use polyhal::consts::VIRT_ADDR_START;
 
 #[cfg(target_arch = "riscv64")]
 const VIRTIO5: usize = 0x10005000 + VIRT_ADDR_START;
