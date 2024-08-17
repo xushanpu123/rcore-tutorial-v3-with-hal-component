@@ -1,9 +1,8 @@
 //!Implementation of [`Processor`] and Intersection of control flow
 use super::{fetch_task, TaskStatus, TaskControlBlock};
 use crate::sync::UPSafeCell;
-use polyhal::pagetable::PageTable;
+use polyhal::{boot::boot_page_table, kcontext::{context_switch_pt, KContext}, pagetable::PageTable};
 // use crate::trap::TrapContext;
-use polyhal::{kernel_page_table, KContext, context_switch_pt};
 
 use alloc::sync::Arc;
 use lazy_static::*;
@@ -81,6 +80,6 @@ pub fn schedule(switched_task_cx_ptr: *mut KContext) {
     let idle_task_cx_ptr = processor.get_idle_task_cx_ptr();
     drop(processor);
     unsafe {
-        context_switch_pt(switched_task_cx_ptr, idle_task_cx_ptr, kernel_page_table());
+        context_switch_pt(switched_task_cx_ptr, idle_task_cx_ptr, boot_page_table());
     }
 }

@@ -5,8 +5,8 @@ use crate::task::{
     suspend_current_and_run_next,
 };
 use alloc::sync::Arc;
+use polyhal::trapframe::TrapFrameArgs;
 use crate::timer::get_time_ms;
-use polyhal::TrapFrameArgs;
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);

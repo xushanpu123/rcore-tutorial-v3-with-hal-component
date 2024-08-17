@@ -45,20 +45,20 @@ pub mod task;
 
 use crate::syscall::syscall;
 use crate::task::{suspend_current_and_run_next, exit_current_and_run_next};
-use polyhal::{get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
 use polyhal::addr::PhysPage;
-use polyhal::TrapType::*;
 use log::*;
-
+use polyhal::common::{get_mem_areas, PageAlloc};
+use polyhal::trap::TrapType;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
+use polyhal::trap::TrapType::*;
 use core::arch::global_asm;
-
 global_asm!(include_str!("link_app.S"));
 
 #[polyhal::arch_interrupt]
 fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
     match trap_type {
         Breakpoint => return,
-        UserEnvCall => {
+        SysCall => {
             // jump to next instruction anyway
             ctx.syscall_ok();
             let args = ctx.args();
@@ -77,7 +77,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
             println!("[kernel] IllegalInstruction in application, kernel killed it.");
             exit_current_and_run_next(-2);
         }
-        Time => {
+        Timer => {
             suspend_current_and_run_next();
         }
         _ => {
@@ -96,7 +96,7 @@ pub fn main(hartid: usize){
     mm::init_heap();
     logging::init(Some("info"));
     info!("[kernel] init logging success!");
-    polyhal::init(&PageAllocImpl);
+    polyhal::common::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)| {
         println!("init memory region {:#x} - {:#x}", start, start + size);
         mm::init_frame_allocator(start, start + size);

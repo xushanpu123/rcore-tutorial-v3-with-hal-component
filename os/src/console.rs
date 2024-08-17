@@ -1,6 +1,7 @@
 //! SBI console driver, for text output
 use core::fmt::{self, Write};
-use polyhal::debug::DebugConsole;
+
+use polyhal::debug_console::DebugConsole;
 
 struct Stdout;
 

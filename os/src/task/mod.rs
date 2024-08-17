@@ -21,11 +21,10 @@ mod processor;
 mod task;
 
 use crate::loader::get_app_data_by_name;
-use polyhal::shutdown;
 use alloc::sync::Arc;
 use lazy_static::*;
 pub use manager::{fetch_task, TaskManager};
-use polyhal::KContext;
+use polyhal::{instruction::Instruction, kcontext::KContext};
 use task::{TaskControlBlock, TaskStatus};
 
 pub use manager::add_task;
@@ -69,10 +68,10 @@ pub fn exit_current_and_run_next(exit_code: i32) {
         );
         if exit_code != 0 {
             //crate::sbi::shutdown(255); //255 == -1 for err hint
-            shutdown()
+            Instruction::shutdown()
         } else {
             //crate::sbi::shutdown(0); //0 for success hint
-            shutdown()
+            Instruction::shutdown()
         }
     }
 
