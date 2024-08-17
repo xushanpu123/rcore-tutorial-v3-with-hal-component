@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["ns16550a","poly_input"],"struct":["UART"],"trait":["CharDevice"]};

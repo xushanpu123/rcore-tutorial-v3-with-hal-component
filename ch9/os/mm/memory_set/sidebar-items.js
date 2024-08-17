@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MapType"],"struct":["MapArea","MapPermission","MemorySet"]};

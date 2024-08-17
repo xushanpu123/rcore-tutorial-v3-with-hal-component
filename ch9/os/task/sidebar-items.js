@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["add_initproc","block_current_and_run_next","block_current_task","check_signals_of_current","current_add_signal","exit_current_and_run_next","suspend_current_and_run_next","task_entry"],"mod":["id","manager","process","processor","signal","task"],"struct":["INITPROC"]};
