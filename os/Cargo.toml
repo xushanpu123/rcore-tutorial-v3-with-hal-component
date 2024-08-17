@@ -11,7 +11,7 @@ edition = "2021"
 # polyhal = { git = "https://github.com/chyyuu/polyhal.git", rev = "7fc31a8", features = ["kcontext"]}
 # polyhal = { git = "https://github.com/Byte-OS/polyhal.git", rev = "58c6e72", features = ["kcontext"]}
 # polyhal = { path = "../../polyhal", features = ["kcontext"]}
-polyhal = { git = "https://github.com/Byte-OS/polyhal.git", features = ["kcontext"]}
+polyhal = { git = "https://github.com/Byte-OS/polyhal.git", features = ["kcontext", "trap", "boot"]}
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 buddy_system_allocator = "0.6"
 bitflags = "1.2.1"
