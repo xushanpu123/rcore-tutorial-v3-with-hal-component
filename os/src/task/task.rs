@@ -2,8 +2,9 @@ use super::id::TaskUserRes;
 use super::{task_entry, KernelStack, ProcessControlBlock};
 use crate::sync::UPSafeCell;
 use alloc::sync::{Arc, Weak};
+use polyhal::kcontext::{KContext, KContextArgs};
 use polyhal::pagetable::PageTable;
-use polyhal::{KContext, KContextArgs, TrapFrame};
+use polyhal::trapframe::TrapFrame;
 use core::cell::RefMut;
 
 pub struct TaskControlBlock {

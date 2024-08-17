@@ -12,7 +12,7 @@ use alloc::{sync::Arc, vec::Vec};
 use lazy_static::*;
 use log::info;
 use manager::fetch_task;
-use polyhal::{run_user_task, KContext, TrapFrame};
+use polyhal::{instruction::Instruction, kcontext::KContext, trap::run_user_task, trapframe::TrapFrame};
 use process::ProcessControlBlock;
 
 pub use id::{pid_alloc, KernelStack, PidHandle, IDLE_PID};
@@ -89,10 +89,10 @@ pub fn exit_current_and_run_next(exit_code: i32) {
             );
             if exit_code != 0 {
                 //crate::sbi::shutdown(255); //255 == -1 for err hint
-                polyhal::shutdown();
+                Instruction::shutdown();
             } else {
                 //crate::sbi::shutdown(0); //0 for success hint
-                polyhal::shutdown();
+                Instruction::shutdown();
             }
         }
         remove_from_pid2process(pid);

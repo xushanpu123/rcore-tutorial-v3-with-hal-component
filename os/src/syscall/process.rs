@@ -10,7 +10,7 @@ use alloc::vec::Vec;
 use log::info;
 use polyhal::pagetable::PageTable;
 use polyhal::time::Time;
-use polyhal::TrapFrameArgs;
+use polyhal::trapframe::TrapFrameArgs;
 
 pub fn sys_exit(exit_code: i32) -> ! {
     exit_current_and_run_next(exit_code);

@@ -22,10 +22,13 @@ mod task;
 
 use crate::{syscall::syscall, task::check_signals_of_current};
 use crate::task::{current_task, exit_current_and_run_next};
-use polyhal::TrapType::*;
 use log::{info, warn};
-use polyhal::{addr::PhysPage, get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
+use polyhal::addr::PhysPage;
+use polyhal::common::{get_mem_areas, PageAlloc};
+use polyhal::trap::TrapType;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 use task::{current_add_signal, suspend_current_and_run_next, SignalFlags};
+use crate::TrapType::*;
 
 use crate::mm::init_frame_allocator;
 
@@ -93,7 +96,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
     // info!("current_task id: {}", current_task().is_some());
     match trap_type {
         Breakpoint => return,
-        UserEnvCall => {
+        SysCall => {
             // jump to next instruction anyway
             ctx.syscall_ok();
             let args = ctx.args();
@@ -119,7 +122,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
         IllegalInstruction(_) => {
             current_add_signal(SignalFlags::SIGILL);
         }
-        Time => {
+        Timer => {
             suspend_current_and_run_next();
         }
         _ => {
@@ -147,7 +150,7 @@ pub fn rust_main() -> ! {
     mm::init();
     logging::init(Some("debug"));
     println!("init logging");
-    polyhal::init(&PageAllocImpl);
+    polyhal::common::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)| {
         init_frame_allocator(start, start + size);
     });

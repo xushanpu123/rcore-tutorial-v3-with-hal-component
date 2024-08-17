@@ -2,6 +2,7 @@ use crate::task::current_kstack_top;
 use core::arch::asm;
 use core::panic::PanicInfo;
 use log::*;
+use polyhal::instruction::Instruction;
 
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
@@ -18,7 +19,7 @@ fn panic(info: &PanicInfo) -> ! {
     // unsafe {
     //     backtrace();
     // }
-    polyhal::shutdown();
+    Instruction::shutdown();
 }
 
 unsafe fn backtrace() {

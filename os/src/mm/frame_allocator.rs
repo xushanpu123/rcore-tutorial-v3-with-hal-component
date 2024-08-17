@@ -1,7 +1,6 @@
 use crate::sync::UPSafeCell;
 use alloc::vec::Vec;
-use polyhal::{PAGE_SIZE, VIRT_ADDR_START};
-use polyhal::addr::{PhysAddr, PhysPage};
+use polyhal::{addr::{PhysAddr, PhysPage}, consts::VIRT_ADDR_START, pagetable::PAGE_SIZE};
 use core::{
     fmt::{self, Debug, Formatter},
     mem::size_of,

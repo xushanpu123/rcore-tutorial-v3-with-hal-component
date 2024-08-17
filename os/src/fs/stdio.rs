@@ -1,5 +1,5 @@
 use log::info;
-use polyhal::{addr::VirtAddr, debug::DebugConsole, pagetable::PageTable};
+use polyhal::{addr::VirtAddr, debug_console::DebugConsole, pagetable::PageTable};
 
 use super::File;
 use crate::task::suspend_current_and_run_next;

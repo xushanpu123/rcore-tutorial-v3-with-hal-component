@@ -11,8 +11,9 @@ use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
 use log::info;
+use polyhal::kcontext::KContextArgs;
 use polyhal::pagetable::PageTable;
-use polyhal::{KContext, KContextArgs, TrapFrame, TrapFrameArgs};
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 use core::cell::RefMut;
 
 pub struct ProcessControlBlock {
@@ -198,7 +199,6 @@ impl ProcessControlBlock {
         trap_cx[TrapFrameArgs::SP] = user_sp;
         trap_cx[TrapFrameArgs::ARG0] = args.len();
         trap_cx[TrapFrameArgs::ARG1] = argv_base;
-        info!("exec end");
         // trap_cx.x[10] = args.len();
         // trap_cx.x[11] = argv_base;
         *task_inner.get_trap_cx() = trap_cx;
