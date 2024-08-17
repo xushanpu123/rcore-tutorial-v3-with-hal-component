@@ -8,10 +8,10 @@ use alloc::string::String;
 use alloc::sync::{Arc, Weak};
 use alloc::vec;
 use alloc::vec::Vec;
+use polyhal::kcontext::{read_current_tp, KContext, KContextArgs};
 use polyhal::pagetable::PageTable;
-use polyhal::{
-    read_current_tp, run_user_task, KContext, KContextArgs, TrapFrame, TrapFrameArgs,
-};
+use polyhal::trap::run_user_task;
+use polyhal::trapframe::{TrapFrame, TrapFrameArgs};
 use core::cell::RefMut;
 use core::mem::size_of;
 

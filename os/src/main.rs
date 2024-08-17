@@ -10,11 +10,10 @@ use crate::{
         handle_signals, suspend_current_and_run_next, SignalFlags,
     },
 };
-use polyhal::{get_mem_areas, PageAlloc, TrapFrame, TrapFrameArgs, TrapType};
 // use polyhal::api::ArchInterface;
-use polyhal::addr::PhysPage;
+use polyhal::{addr::PhysPage, common::{get_mem_areas, PageAlloc}, trap::TrapType, trapframe::{TrapFrame, TrapFrameArgs}};
 use log::*;
-use polyhal::TrapType::*;
+use polyhal::trap::TrapType::*;
 extern crate alloc;
 
 #[macro_use]
@@ -40,7 +39,7 @@ fn kernel_interrupt(ctx: &mut TrapFrame, trap_type: TrapType) {
     // trace!("trap_type @ {:x?} {:#x?}", trap_type, ctx);
     match trap_type {
         Breakpoint => return,
-        UserEnvCall => {
+        SysCall => {
             // jump to next instruction anyway
             ctx.syscall_ok();
             let args = ctx.args();
@@ -95,7 +94,7 @@ fn main(hartid: usize) {
     println!("init logging");
     // polyhal::init_interrupt(); done in polyhal::CPU::rust_main()
 
-    polyhal::init(&PageAllocImpl);
+    polyhal::common::init(&PageAllocImpl);
     get_mem_areas().into_iter().for_each(|(start, size)| {
         println!("init memory region {:#x} - {:#x}", start, start + size);
         mm::init_frame_allocator(start, start + size);

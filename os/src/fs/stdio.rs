@@ -1,8 +1,7 @@
-use polyhal::debug::DebugConsole;
+use polyhal::debug_console::DebugConsole;
 
 use super::File;
 use crate::task::suspend_current_and_run_next;
-
 pub struct Stdin;
 
 pub struct Stdout;

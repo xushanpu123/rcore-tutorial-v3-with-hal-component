@@ -2,10 +2,12 @@ use super::TaskControlBlock;
 use super::{fetch_task, TaskStatus};
 use crate::sync::UPSafeCell;
 use alloc::sync::Arc;
+use polyhal::boot::boot_page_table;
+use polyhal::kcontext::KContext;
 use polyhal::pagetable::PageTable;
-use polyhal::{kernel_page_table, KContext, context_switch_pt};
 use lazy_static::*;
 use log::*;
+use polyhal::kcontext::context_switch_pt;
 pub struct Processor {
     current: Option<Arc<TaskControlBlock>>,
     idle_task_cx: KContext,
@@ -76,6 +78,6 @@ pub fn schedule(switched_task_cx_ptr: *mut KContext) {
     drop(processor);
     // from switched task, switch to idle task with kernel page table
     unsafe {
-        context_switch_pt(switched_task_cx_ptr, idle_task_cx_ptr, kernel_page_table());
+        context_switch_pt(switched_task_cx_ptr, idle_task_cx_ptr, boot_page_table());
     }
 }
