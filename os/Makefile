@@ -72,7 +72,7 @@ OBJCOPY := rust-objcopy --binary-architecture=riscv64
 DISASM ?= -x		
 env:
 	(rustup target list | grep "$(TARGET) (installed)") || rustup target add $(TARGET)
-	cargo install cargo-binutils
+	cargo install cargo-binutils  --version 0.3.0
 	rustup component add rust-src
 	rustup component add llvm-tools-preview
 
