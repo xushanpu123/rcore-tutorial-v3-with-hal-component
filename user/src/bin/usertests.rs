@@ -5,7 +5,7 @@
 extern crate user_lib;
 
 // not in SUCC_TESTS & FAIL_TESTS
-// count_lines, infloop, user_shell, usertests
+
 
 // item of TESTS : app_name(argv_0), argv_1, argv_2, argv_3, exit_code
 static SUCC_TESTS: &[(&str, &str, &str, &str, i32)] = &[
