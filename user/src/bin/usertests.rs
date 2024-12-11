@@ -3,6 +3,7 @@
 
 #[macro_use]
 extern crate user_lib;
+use user_lib::get_time;
 
 extern crate alloc;
 
@@ -119,13 +120,19 @@ fn run_tests(tests: &[(&str, &str, &str, &str, i32)]) -> (i32, Vec<String>) {
 
 #[no_mangle]
 pub fn main() -> i32 {
+    let start = get_time(); 
     let (succ_num, succ_failed) = run_tests(SUCC_TESTS);
     let (err_num, err_failed) = run_tests(FAIL_TESTS);
     if succ_num == SUCC_TESTS.len() as i32 && err_num == FAIL_TESTS.len() as i32 {
+        let end = get_time();
         println!(
             "{} of sueecssed apps, {} of failed apps run correctly. \nUsertests passed!",
             SUCC_TESTS.len(),
             FAIL_TESTS.len()
+        );
+        println!(
+            "The test costs {} msecs",
+            end - start
         );
         return 0;
     }
