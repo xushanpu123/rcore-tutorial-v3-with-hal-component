@@ -36,11 +36,11 @@ jobs:
           toolchain: ${{ env.rust_toolchain }}
           components: rust-src, llvm-tools-preview
           target: riscv64gc-unknown-none-elf
-      - uses: actions-rs/install@v0.1
-        with:
-          crate: cargo-binutils
-          version: 0.3.0
-          use-tool-cache: true
+      # - uses: actions-rs/install@v0.1
+      #   with:
+      #     crate: cargo-binutils
+      #     version: 0.3.0
+      #     use-tool-cache: true
       - name: Cache QEMU
         uses: actions/cache@v3
         with:
