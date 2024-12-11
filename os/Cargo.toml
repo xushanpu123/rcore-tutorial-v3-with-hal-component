@@ -20,7 +20,7 @@ rev = "db42380"
 
 [dependencies.polyhal]
 features = ["kcontext", "trap", "boot"]
-git = "https://github.com/Byte-OS/polyhal.git"
+git = "https://github.com/xushanpu123/polyhal.git"
 
 [dependencies.virtio-drivers]
 git = "https://github.com/rcore-os/virtio-drivers"
