@@ -39,7 +39,7 @@ jobs:
       - uses: actions-rs/install@v0.1
         with:
           crate: cargo-binutils
-          version: latest
+          version: 0.3.0
           use-tool-cache: true
       - name: Cache QEMU
         uses: actions/cache@v3
